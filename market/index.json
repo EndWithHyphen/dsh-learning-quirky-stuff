@@ -1,0 +1,50 @@
+{
+  "format": 1,
+  "title": {
+    "en": "Studyboard",
+    "zh": "学习画板"
+  },
+  "description": {
+    "en": "Official release index maintained by the Studyboard project.",
+    "zh": "由学习画板项目维护的发布索引。"
+  },
+  "plugins": [
+    {
+      "name": "dsh-learning-quirky-stuff",
+      "title": {
+        "en": "Studyboard · Quirky Stuff",
+        "zh": "学习画板"
+      },
+      "description": {
+        "en": "Handwritten notes and screenshots, structured AI summaries, editable infographics, source-linked knowledge graphs, spaced review and weekly reflection.",
+        "zh": "学习画板：手写与截图笔记、AI 图文总结、系统学习、知识图谱、间隔复习和周报"
+      },
+      "author": "Qiangsheng Liu",
+      "homepage": "https://github.com/EndWithHyphen/dsh-learning-quirky-stuff#readme",
+      "repository": {
+        "url": "https://github.com/EndWithHyphen/dsh-learning-quirky-stuff"
+      },
+      "keywords": [
+        "dsh-plugin",
+        "deepseek-harness",
+        "whiteboard",
+        "learning",
+        "notes"
+      ],
+      "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiM1MjdiNjkiLz48cGF0aCBkPSJNMTggMTZoMjh2MzRIMTh6IiBmaWxsPSIjZmZmIi8+PHBhdGggZD0ibTI0IDM0IDgtMTEgOCAxMU0yNyAzMGgxME0yNCA0MWgxNiIgc3Ryb2tlPSIjNTI3YjY5IiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPgo=",
+      "versions": [
+        {
+          "version": "4.3.1",
+          "publishTimestamp": 1794335362,
+          "source": {
+            "type": "npm",
+            "registry": "https://registry.npmjs.org/"
+          },
+          "engines": {
+            "dsh": ">=0.2.2-rc.1 <0.3.0"
+          }
+        }
+      ]
+    }
+  ]
+}
