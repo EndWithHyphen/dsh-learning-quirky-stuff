@@ -1,5 +1,12 @@
 export const FEATURES = [
   {
+    id: 'canvasComments',
+    title: '画布提问与备注',
+    description: '选中组件提问，保留 AI 回答和自己的备注，标记随组件移动。',
+    model: true,
+    surface: 'note',
+  },
+  {
     id: 'infographics',
     title: '自适应信息图',
     description: 'AI 总结按内容需要配图，支持编辑、查看来源与单独重做。',

@@ -20,6 +20,7 @@ import { SystemStudyModule } from './modules/system-study.js';
 import { WeeklyModule } from './modules/weekly.js';
 import { InfographicsModule } from './modules/infographics.js';
 import { weeklyCardAvailable } from './weekly-review.js';
+import { CanvasCommentsModule } from './modules/canvas-comments.js';
 
 /** Composition root: modules receive shared services and register their own actions. */
 export class LearningRuntime {
@@ -39,6 +40,7 @@ export class LearningRuntime {
         'study-canvases',
         'infographics',
         'infographic-canvases',
+        'canvas-comments',
       ].map((name) => [name, new JsonRepository(store.root, name)]),
     );
     this.sources = new SourceRepository(
@@ -82,6 +84,7 @@ export class LearningRuntime {
       studyCanvases: this.repositories['study-canvases'],
       infographics: this.repositories.infographics,
       infographicCanvases: this.repositories['infographic-canvases'],
+      comments: this.repositories['canvas-comments'],
       materialLibrary,
       route: (feature, route) => (route?.provider ? route : this.config.get().models[feature] || {}),
     };
@@ -94,6 +97,7 @@ export class LearningRuntime {
       new SystemStudyModule(context),
       new WeeklyModule(context),
       new InfographicsModule(context),
+      new CanvasCommentsModule(context),
     ];
     for (const module of this.modules) module.register(this.router);
     this.router.register('features.get', () => this.config.get());
@@ -188,7 +192,11 @@ export class LearningRuntime {
   }
   async purge(ids) {
     await this.tasks.removeReferences(ids);
-    for (const repository of [this.repositories.infographics, this.repositories['infographic-canvases']])
+    for (const repository of [
+      this.repositories.infographics,
+      this.repositories['infographic-canvases'],
+      this.repositories['canvas-comments'],
+    ])
       for (const entry of await repository.list())
         if (ids.includes(entry.noteId)) await repository.remove(entry.id);
     const materials = await this.repositories.materials.list(),
@@ -260,6 +268,7 @@ export class LearningRuntime {
       studyCanvases: await this.repositories['study-canvases'].list(),
       infographics: await this.repositories.infographics.list(),
       infographicCanvases: await this.repositories['infographic-canvases'].list(),
+      canvasComments: await this.repositories['canvas-comments'].list(),
     };
   }
   async dispose() {

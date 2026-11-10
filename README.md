@@ -6,6 +6,7 @@ Studyboard is a local learning workspace for DeepSeek Harness: handwritten notes
 
 - **自由白板**：触控笔、图片、形状、箭头、文字、自动保存、PDF 导出。
 - **结构化记录**：提问卡、编号知识点、对比卡、步骤卡、图片备注；选定区域后自动排版，双击卡片编辑。
+- **组件提问与备注**：选中文字、图片或一组组件向模型提问，继续追问或留下自己的备注。讨论标记跟随组件，支持已解决、重新打开和来源变化提示。
 - **AI 总结**：按主题组织图文内容，保留原图，支持批注、拓展、互动自测和可选的间隔复习。
 - **自适应信息图**：总结时按内容决定是否配图、复用原图或重新组织。生成的文字、图片与关系可编辑，支持来源对照、独立重做、历史版本和图片 / PDF / 可编辑画布导出。
 - **系统学习**：在 AI 总结中选择系统学习，按主题决定机制图、论证关系、比较图或时间线；连接相关笔记、按需联网补充资料，生成可编辑论证白板。时间旅行研究区分当时的知识、解释边界与后来的修正。
@@ -18,14 +19,14 @@ Studyboard is a local learning workspace for DeepSeek Harness: handwritten notes
 
 ## 安装
 
-当前版本 **4.3.1** 适配 DSH **0.2.2-rc.1**。macOS 13+ 为完整功能的首批验证平台；发布包附带 Apple Silicon / Intel 本机识别程序。Linux、Windows 的通用功能可运行，但尚未完成完整平台验收，图片识别与本机 PDF 提取会明确提示不支持。
+当前版本 **4.4.0** 适配 DSH **0.2.2-rc.1**。macOS 13+ 为完整功能的首批验证平台；发布包附带 Apple Silicon / Intel 本机识别程序。Linux、Windows 的通用功能可运行，但尚未完成完整平台验收，图片识别与本机 PDF 提取会明确提示不支持。
 
-桌面版通过 DSH「插件」页面添加 npm 包 `dsh-learning-quirky-stuff@4.3.1`。离线安装可从 [Releases](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases) 下载 `.tgz`，解压后选择 `package` 目录。`desktop` profile 由 Electron 应用管理，CLI 不允许直接修改。
+桌面版通过 DSH「插件」页面添加 npm 包 `dsh-learning-quirky-stuff@4.4.0`。离线安装可从 [Releases](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases) 下载 `.tgz`，解压后选择 `package` 目录。`desktop` profile 由 Electron 应用管理，CLI 不允许直接修改。
 
 命令行版使用独立 profile 安装：
 
 ```sh
-dsh plugin --profile studyboard add dsh-learning-quirky-stuff@4.3.1
+dsh plugin --profile studyboard add dsh-learning-quirky-stuff@4.4.0
 ```
 
 在 DSH 中启用「自定义插件市场」，打开「插件 → 发现 → 添加索引源」，可使用本项目的发布索引：
@@ -39,6 +40,36 @@ https://raw.githubusercontent.com/EndWithHyphen/dsh-learning-quirky-stuff/main/m
 Chrome 配套为 [Release 中的独立 ZIP](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases/latest)。解压后在 `chrome://extensions` 开启开发者模式，选择「加载已解压的扩展程序」。首次打开扩展设置，点「连接本机 DSH」，再到 DSH 的「浏览器快捷笔记」允许连接。以后自动连接，无需输入连接码。旧版已建立的本机连接可迁移。
 
 详细步骤：[安装与迁移](docs/install.md) · [使用说明](docs/user-guide.html) · [数据处理说明](docs/privacy.md)
+
+## Chrome 扩展：边看边记
+
+连接后，在文章或视频页按 **⌘⇧Y**（Windows / Linux：**Ctrl⇧Y**）打开笔记侧栏。每个标签页各自绑定一篇笔记，自动保存网页链接；切换标签页可继续记录对应内容。
+
+**侧栏随手记**适合快速留下主线、联系和疑问，写入内容后自动同步到本机 DSH。
+
+<img src="https://raw.githubusercontent.com/EndWithHyphen/dsh-learning-quirky-stuff/main/docs/images/chrome-sidepanel.png" alt="Chrome 侧栏：网页来源、截图入口和随手记" width="460">
+
+**截图与画布**：点「区域截图」拖选关键部分，截图会放到当前笔记。切换「手写画布」即可圈画、添加图注、放置知识点或提问卡；「专注画布」让画布占满插件面板。
+
+<img src="https://raw.githubusercontent.com/EndWithHyphen/dsh-learning-quirky-stuff/main/docs/images/chrome-canvas.png" alt="专注画布：截图、手写圈画、编号知识点与提问卡" width="1000">
+
+**选中组件后讨论**：点「提问 / 备注」，选模型并点「问 AI」，或点「留下备注」保存自己的想法。点击组件旁的编号再次展开；「备注」列表可查找讨论和已解决记录。DSH 主画布、系统学习白板与信息图编辑器也支持这一入口。
+
+<img src="https://raw.githubusercontent.com/EndWithHyphen/dsh-learning-quirky-stuff/main/docs/images/chrome-comments.png" alt="选中截图后留下备注，并针对该图输入问题" width="1000">
+
+**底部打开**：侧栏顶部点「底部打开」，笔记面板会从当前网页下方展开，适合保留较宽的文章或视频区域。拖动面板上沿调整高度，也可切回侧栏。
+
+<img src="https://raw.githubusercontent.com/EndWithHyphen/dsh-learning-quirky-stuff/main/docs/images/chrome-bottom.png" alt="文章下方的底部笔记面板，包含截图和随手记" width="1000">
+
+| 操作 | macOS | Windows / Linux |
+| --- | --- | --- |
+| 打开当前标签页笔记 | ⌘⇧Y | Ctrl⇧Y |
+| 区域截图 | ⌥⇧S | Alt⇧S |
+| 可见页截图 | ⌥⇧V | Alt⇧V |
+| 专注画布 | ⌥⇧F | Alt⇧F |
+| 取消区域截图 | Esc | Esc |
+
+截图和专注快捷键需要先让插件面板获得焦点；打开笔记的快捷键可在 `chrome://extensions/shortcuts` 修改。以上截图使用独立的演示文章和笔记。
 
 ## 模型与本机能力
 

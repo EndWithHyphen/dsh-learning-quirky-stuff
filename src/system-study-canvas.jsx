@@ -5,6 +5,7 @@ import { cleanState, download, filename, pdfBlob } from './export.js';
 import { sameSceneContent, withKnownFiles, missingImageFiles } from './scene-sync.js';
 import { draftRead, draftPut, draftDelete } from './drafts.js';
 import CanvasTools from './canvas-tools.jsx';
+import CanvasComments from './canvas-comments.jsx';
 import { bindCanvasShortcuts } from './canvas-shortcuts.js';
 import { Action, Evidence, ErrorNotice } from './features/shared.jsx';
 
@@ -225,7 +226,17 @@ export default function SystemStudyCanvas({ report, saved, api, onError, onReloa
       {error && <Action onClick={reload}>载入已保存版本</Action>}
       <div className="sb-system-workspace">
         <div className="sb-system-drawing study-canvas-surface" ref={root}>
-          <CanvasTools apiRef={ref} rootRef={root} onFit={() => fit()} />
+          <CanvasTools apiRef={ref} rootRef={root} onFit={() => fit()}>
+            <CanvasComments
+              key={report.id}
+              apiRef={ref}
+              rootRef={root}
+              noteId={report.key}
+              canvas={{ kind: 'study', id: report.id }}
+              execute={(r) => api('execute', r)}
+              flush={flush}
+            />
+          </CanvasTools>
           <div className="sb-system-engine">
             {initial && (
               <Excalidraw

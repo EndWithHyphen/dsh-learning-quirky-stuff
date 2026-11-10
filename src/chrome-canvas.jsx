@@ -17,6 +17,7 @@ import CanvasShortcutHelp from './canvas-shortcut-help.jsx';
 import shortcutCSS from './canvas-shortcuts.css';
 import ImageText from './image-text.jsx';
 import CanvasTools from './canvas-tools.jsx';
+import CanvasComments from './canvas-comments.jsx';
 import LearningWidgets from './learning-widgets.jsx';
 import widgetCSS from './learning-widgets.css';
 
@@ -274,6 +275,14 @@ export async function mount(root, context, callbacks = {}) {
           </div>
         )}
         <CanvasTools apiRef={apiRef} rootRef={rootRef} onFit={() => fit()}>
+          <CanvasComments
+            key={context.id}
+            apiRef={apiRef}
+            rootRef={rootRef}
+            noteId={context.id}
+            execute={async (r) => (await request('/module', r)).value}
+            flush={flushCanvas}
+          />
           <ImageText
             apiRef={apiRef}
             rootRef={rootRef}

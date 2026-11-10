@@ -6,6 +6,7 @@ import { draftRead, draftPut, draftDelete } from './drafts.js';
 import { sameSceneContent, withKnownFiles, missingImageFiles } from './scene-sync.js';
 import { bindCanvasShortcuts } from './canvas-shortcuts.js';
 import CanvasTools from './canvas-tools.jsx';
+import CanvasComments from './canvas-comments.jsx';
 
 export default function InfographicCanvas({
   entry,
@@ -272,7 +273,20 @@ export default function InfographicCanvas({
       )}
       <div className="sb-info-edit-workspace">
         <div className="sb-info-drawing study-canvas-surface" ref={surface}>
-          <CanvasTools apiRef={engine} rootRef={surface} onFit={fit} />
+          <CanvasTools apiRef={engine} rootRef={surface} onFit={fit}>
+            <CanvasComments
+              key={entry.id}
+              apiRef={engine}
+              rootRef={surface}
+              noteId={entry.noteId}
+              canvas={{ kind: 'infographic', id: entry.id, summaryId: entry.summaryId }}
+              execute={(r) => api('execute', r)}
+              flush={async () => {
+                if (!revision.current) dirty.current = true;
+                await flush();
+              }}
+            />
+          </CanvasTools>
           <div className="sb-info-engine">
             {initial && (
               <Excalidraw

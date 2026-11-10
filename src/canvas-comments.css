@@ -1,0 +1,250 @@
+.study-canvas-surface {
+  position: relative;
+}
+.study-comments-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 32;
+  overflow: hidden;
+  color: #26382e;
+  font:
+    13px/1.6 system-ui,
+    sans-serif;
+}
+.study-comments-overlay button,
+.study-comments-overlay input,
+.study-comments-overlay select,
+.study-comments-overlay textarea {
+  font: inherit;
+  color: inherit;
+  box-sizing: border-box;
+}
+.study-comments-overlay button {
+  cursor: pointer;
+}
+.study-comments-overlay button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.study-comments-overlay .study-comment-pin {
+  pointer-events: auto;
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 2px solid white;
+  border-radius: 12px 12px 12px 2px;
+  background: #7160bb;
+  color: white;
+  box-shadow: 0 1px 5px #0003;
+  font-size: 12px;
+}
+.study-comments-overlay .study-comment-pin.active {
+  background: #304c3b;
+}
+.study-comment-panel {
+  pointer-events: auto;
+  position: absolute;
+  right: 10px;
+  width: min(360px, calc(100% - 20px));
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #dce4de;
+  border-radius: 12px;
+  box-shadow: 0 7px 26px #1f352228;
+  overflow: hidden;
+  text-align: left;
+}
+.study-comment-panel > header {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e8ece9;
+}
+.study-comment-panel button {
+  border: 1px solid #dce4de;
+  border-radius: 6px;
+  padding: 4px 9px;
+  background: white;
+  box-shadow: none;
+}
+.study-comment-panel > header button {
+  border: 0;
+  background: transparent;
+}
+.study-comment-panel > header > div {
+  display: flex;
+  gap: 4px;
+}
+.study-comment-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 14px 14px;
+  min-height: 0;
+}
+.study-comment-context,
+.study-comment-byline,
+.study-comment-job,
+.study-comment-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.study-comment-context {
+  font-size: 11px;
+  margin-bottom: 10px;
+  color: #6e7e73;
+}
+.study-comment-byline {
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+.study-comment-byline time,
+.study-comment-muted {
+  font-size: 11px;
+  color: #77857b;
+}
+.study-comment-message {
+  padding: 12px 0;
+  border-bottom: 1px solid #e8ece9;
+}
+.study-comment-message.assistant {
+  padding: 12px;
+  background: #f2f6f1;
+  margin: 8px -3px;
+  border: 0;
+  border-radius: 8px;
+}
+.study-comment-body,
+.study-comment-source p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.study-comment-body {
+  font-size: 13px;
+}
+.study-comment-model,
+.study-comment-compose {
+  display: block;
+  margin-top: 14px;
+  font-size: 11px;
+}
+.study-comment-model > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+}
+.study-comment-model select {
+  min-width: 0;
+  flex: 1;
+  height: 34px;
+  background: white;
+  border: 1px solid #dce4de;
+  border-radius: 6px;
+  padding: 3px 28px 3px 8px;
+}
+.study-comment-model button {
+  height: 34px;
+  width: 34px;
+  flex-shrink: 0;
+  padding: 0;
+}
+.study-comment-compose textarea {
+  display: block;
+  width: 100%;
+  min-height: 84px;
+  max-height: 240px;
+  resize: vertical;
+  margin-top: 5px;
+  padding: 9px;
+  border: 1px solid #dce4de;
+  border-radius: 7px;
+  background: white;
+  font-size: 13px;
+}
+.study-comment-actions {
+  justify-content: flex-end;
+  margin-top: 9px;
+}
+.study-comment-panel .study-comment-primary {
+  background: #304c3b;
+  border-color: #304c3b;
+  color: white;
+}
+.study-comment-panel .study-comment-resolve {
+  display: block;
+  margin: 14px auto 0;
+  border: 0;
+  color: #748277;
+  font-size: 11px;
+}
+.study-comment-notice {
+  background: #faf2e3;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 10px 0;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.study-comment-notice button {
+  margin: 5px 0 0 6px;
+}
+.study-comment-job {
+  font-size: 11px;
+  color: #6e7e73;
+  padding-top: 8px;
+}
+.study-comment-source {
+  font-size: 11px;
+  color: #768279;
+  margin: 9px 0;
+}
+.study-comment-source img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  background: #fafafa;
+  margin-top: 6px;
+}
+.study-comment-source p {
+  max-height: 160px;
+  overflow-y: auto;
+}
+.study-comment-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.study-comment-filter input {
+  margin: 0;
+  width: auto;
+}
+.study-comment-panel .study-comment-list-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 8px 0;
+  padding: 10px;
+}
+.study-comment-list-item b,
+.study-comment-list-item small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.study-comment-list-item b {
+  font-weight: 500;
+}
+.study-comment-list-item small {
+  color: #77857b;
+  font-size: 11px;
+  margin-top: 4px;
+}

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CANVAS_TOOLS, focusCanvas } from './canvas-shortcuts.js';
+import CanvasTextWrap from './canvas-text-wrap.jsx';
 const paths = {
   selection: 'M5 3l14 8-7 2-3 7z M12 13l5 7',
   hand: 'M8 12V6a1.5 1.5 0 013 0v6-8a1.5 1.5 0 013 0v8-6a1.5 1.5 0 013 0v6-3a1.5 1.5 0 013 0v6c0 4-3 7-7 7h-1c-2 0-4-1-5-3l-3-5a1.5 1.5 0 012-2l2 2',
@@ -136,6 +137,7 @@ export default function CanvasTools({ apiRef, rootRef, onFit, children }) {
           </button>
         ))}
       </div>
+      <CanvasTextWrap apiRef={apiRef} />
       {children}
       {hover && (
         <div className="study-tools-tip" role="tooltip">

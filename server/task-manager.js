@@ -24,13 +24,13 @@ export class TaskManager {
     }
     return this;
   }
-  async start({ feature, title, key, references = {}, request = {}, run }) {
+  async start({ feature, title, key, references = {}, request = {}, run, once = false }) {
     this.config.assert(feature);
     const existing = [...this.jobs.values()].find(
       (job) =>
         job.record.feature === feature &&
         job.record.key === key &&
-        ['queued', 'running'].includes(job.record.status),
+        (once || ['queued', 'running'].includes(job.record.status)),
     );
     if (existing) return this.view(existing);
     if (

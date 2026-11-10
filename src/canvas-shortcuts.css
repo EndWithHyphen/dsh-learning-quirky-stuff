@@ -127,6 +127,11 @@
 .study-canvas-surface .excalidraw .HintViewer {
   display: none !important;
 }
+/* Keep the library in the last grid column after hiding the native middle toolbar. */
+.study-canvas-surface .excalidraw .App-menu_top > :last-child {
+  grid-column: -2 / -1;
+  justify-self: end;
+}
 .study-tools {
   position: relative;
   z-index: 30;

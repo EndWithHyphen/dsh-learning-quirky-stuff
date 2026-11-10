@@ -20,7 +20,16 @@ await cp('chrome-extension', extension, {
 });
 const store = await new LibraryStore(join(temp, 'data')).init(),
   learning = await new LearningStore(store).init(),
-  runtime = await new LearningRuntime({ llm: { listProviders: () => [] } }, store, learning).init();
+  runtime = await new LearningRuntime({ llm: { listProviders: () => [] } }, store, learning, {
+    gateway: {
+      async text() {
+        return {
+          text: '先独立回忆，再用证据核对遗漏。',
+          model: { id: 'browser-fixture', provider: 'fixture', name: '浏览器测试模型' },
+        };
+      },
+    },
+  }).init();
 const bridge = new CaptureServer(store, { port: 0 });
 bridge.moduleAction = (request) => runtime.execute(request);
 await bridge.start();
@@ -206,6 +215,128 @@ try {
   assert.ok(
     await panel.evaluate(() => window.__qaCanvas.getSceneElements().some((e) => e.text === '主动回忆')),
   );
+  const libraryPosition = await panel.evaluate(() => {
+    const button = document.querySelector('.default-sidebar-trigger').getBoundingClientRect(),
+      canvas = document.querySelector('.excalidraw').getBoundingClientRect();
+    return { gap: canvas.right - button.right, left: button.left, right: canvas.right };
+  });
+  assert.ok(libraryPosition.gap < 40, JSON.stringify(libraryPosition));
+  await panel.evaluate(() => {
+    const api = window.__qaCanvas,
+      template = api.getSceneElements().find((e) => e.type === 'text');
+    const text = '理解材料时，先找到核心主张和证据，再核对成立条件。'.repeat(40);
+    api.updateScene({
+      elements: [
+        ...api.getSceneElements(),
+        {
+          ...template,
+          id: 'qa-long',
+          x: 40,
+          y: 600,
+          width: 18000,
+          height: 25,
+          fontSize: 20,
+          lineHeight: 1.25,
+          text,
+          originalText: text,
+          containerId: null,
+          groupIds: [],
+          customData: {},
+          autoResize: true,
+          angle: 0,
+          version: 1,
+          versionNonce: 1234,
+        },
+      ],
+      appState: { selectedElementIds: {} },
+      captureUpdate: 'IMMEDIATELY',
+    });
+  });
+  await panel.waitForFunction(
+    () => window.__qaCanvas.getSceneElements().find((e) => e.id === 'qa-long')?.width < 900,
+  );
+  await panel.locator('.excalidraw').focus();
+  const modifier = await panel.evaluate(() => (/Mac/.test(navigator.platform) ? 'Meta' : 'Control'));
+  await panel.keyboard.press(modifier + '+z');
+  await panel.waitForFunction(() => {
+    const e = window.__qaCanvas.getSceneElements().find((e) => e.id === 'qa-long');
+    return !e || e.width > 900;
+  });
+  await panel.waitForTimeout(150);
+  assert.ok(
+    await panel.evaluate(() => {
+      const e = window.__qaCanvas.getSceneElements().find((e) => e.id === 'qa-long');
+      return !e || e.width > 900;
+    }),
+  );
+  await panel.keyboard.press(modifier + '+Shift+z');
+  await panel.waitForFunction(
+    () => window.__qaCanvas.getSceneElements().find((e) => e.id === 'qa-long')?.width < 900,
+  );
+  await panel.getByRole('button', { name: '保存', exact: true }).first().click();
+  await panel.reload();
+  await panel.waitForFunction(() => window.__qaCanvas);
+  assert.ok(
+    await panel.evaluate(() =>
+      window.__qaCanvas
+        .getSceneElements()
+        .find((e) => e.id === 'qa-long')
+        .text.includes('\n'),
+    ),
+  );
+  await panel.evaluate(() => {
+    const api = window.__qaCanvas;
+    api.updateScene({
+      appState: { selectedElementIds: { 'qa-long': true }, scrollX: 0, scrollY: -500, zoom: { value: 1 } },
+    });
+  });
+  await panel.getByRole('button', { name: '提问 / 备注', exact: true }).click();
+  await panel.getByRole('textbox', { name: '提问或备注', exact: true }).fill('核对主张和证据之间的关系');
+  await panel.getByRole('button', { name: '留下备注', exact: true }).click();
+  await panel
+    .locator('.study-comment-message.note')
+    .getByText('核对主张和证据之间的关系', { exact: true })
+    .waitFor();
+  await panel.getByRole('textbox', { name: '提问或备注', exact: true }).fill('如何检查我的理解？');
+  await panel.getByRole('button', { name: '问 AI', exact: true }).click();
+  await panel
+    .locator('.study-comment-message.assistant')
+    .getByText('先独立回忆，再用证据核对遗漏。', { exact: true })
+    .waitFor();
+  await panel.getByRole('button', { name: '关闭画布备注', exact: true }).click();
+  const beforePin = await panel.locator('.study-comment-pin').boundingBox();
+  assert.ok(beforePin);
+  await panel.evaluate(() => {
+    const api = window.__qaCanvas;
+    api.updateScene({
+      elements: api
+        .getSceneElements()
+        .map((e) => (e.id === 'qa-long' ? { ...e, x: e.x + 30, y: e.y + 20, version: e.version + 1 } : e)),
+    });
+  });
+  await panel.waitForFunction(
+    (x) => Math.abs(document.querySelector('.study-comment-pin').getBoundingClientRect().left - x - 30) < 2,
+    beforePin.x,
+  );
+  await panel.getByRole('button', { name: '保存', exact: true }).first().click();
+  await panel.reload();
+  await panel.waitForFunction(() => window.__qaCanvas);
+  await panel.getByRole('button', { name: '画布备注列表', exact: true }).click();
+  await panel
+    .locator('.study-comment-list-item')
+    .getByText('核对主张和证据之间的关系', { exact: true })
+    .click();
+  await panel.locator('.study-comment-message.assistant').waitFor();
+  await panel.getByRole('button', { name: '标记已解决', exact: true }).click();
+  await panel.getByRole('button', { name: '重新打开', exact: true }).waitFor();
+  await panel.getByRole('button', { name: '重新打开', exact: true }).click();
+  await panel.getByRole('textbox', { name: '提问或备注', exact: true }).waitFor();
+  await panel.setViewportSize({ width: 440, height: 800 });
+  const commentBox = await panel.getByRole('dialog', { name: '画布提问与备注' }).boundingBox();
+  assert.ok(commentBox.x >= 0 && commentBox.x + commentBox.width <= 440);
+  await panel.screenshot({ path: join(temp, 'comments-narrow.png') });
+  await panel.setViewportSize({ width: 1280, height: 800 });
+  await panel.getByRole('button', { name: '关闭画布备注', exact: true }).click();
   if (process.platform === 'darwin') {
     const dataURL = await panel.evaluate(() => {
       const canvas = document.createElement('canvas');
@@ -235,6 +366,10 @@ try {
       revoke: true,
       canvasCreateEditSaveReload: true,
       toolbarOutsideCanvas: true,
+      libraryAligned: true,
+      longTextWrapPersists: true,
+      componentComments: true,
+      commentAnchorFollowsMove: true,
     }),
   );
 } catch (error) {

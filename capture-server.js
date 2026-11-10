@@ -261,6 +261,10 @@ export class CaptureServer {
           ![
             'features.get',
             'features.models',
+            'canvasComments.list',
+            'canvasComments.send',
+            'canvasComments.resolve',
+            'canvasComments.model',
             'system.capabilities',
             'search.recognizeImage',
             'search.confirmImage',

@@ -18,6 +18,7 @@ import CanvasShortcutHelp from './canvas-shortcut-help.jsx';
 import shortcutCSS from './canvas-shortcuts.css';
 import ImageText from './image-text.jsx';
 import CanvasTools from './canvas-tools.jsx';
+import CanvasComments from './canvas-comments.jsx';
 import LearningWidgets from './learning-widgets.jsx';
 import { summaryCanvas } from './summary-canvas.js';
 import { originalSummaryElements } from '../summary-sources.js';
@@ -1501,6 +1502,15 @@ const Board = React.forwardRef(function Board(
       <div className="sb-board-body">
         <div className="sb-canvas-column">
           <CanvasTools key={canvasEpoch} apiRef={excali} rootRef={canvasRoot}>
+            <CanvasComments
+              key={board.id}
+              apiRef={excali}
+              rootRef={canvasRoot}
+              noteId={board.id}
+              enabled={boardModules.settings?.features?.canvasComments}
+              execute={(r) => api('execute', r)}
+              flush={flush}
+            />
             <ImageText
               apiRef={excali}
               rootRef={canvasRoot}

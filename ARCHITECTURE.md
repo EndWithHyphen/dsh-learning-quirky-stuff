@@ -25,6 +25,8 @@
 | `src/system-study-*` | AI 总结中的系统学习入口、语义网格排版、可编辑白板、来源检查与独立草稿 |
 | `shared/infographics.js`、`server/infographic-sources.js` | 按需配图提示词、声明式版面 Schema、规范化与生成时来源快照 |
 | `server/modules/infographics.js`、`src/infographic-*` | 单独配图与版本管理、原生画布排版、阅读预览、编辑与统一导出 |
+| `server/modules/canvas-comments.js`、`shared/canvas-comments.js`、`src/canvas-comments.*` | 主画布、系统学习和信息图的组件讨论，来源快照、选择校验、幂等提问、跟随标记与草稿 |
+| `src/canvas-text-layout.js`、`src/canvas-text-wrap.jsx` | 普通长文字的宽度和换行规则、避让布局、撤销与手动整理入口 |
 | `server/integrations/`、`native/` | 网页正文 / PDF 提取、macOS Vision 图片与手写识别 |
 | `server/lib/` | 存储仓库、值校验和小型工具函数 |
 | `docs/user-guide.html`、`scripts/build-guide.mjs` | 使用说明的单一来源，生成 DSH 内嵌文档及 Chrome 离线说明 |
@@ -61,10 +63,13 @@ router.register('topics.generate', request => this.generate(request), 'topics');
 | 反馈 | `feedback.context` / `feedback.start` / `feedback.history` / `feedback.get` / `feedback.resolve` / `feedback.enroll` |
 | 系统学习 | `systemStudy.start` / `systemStudy.list` / `systemStudy.get` / `systemStudy.saveCanvas` / `systemStudy.deleted` / `systemStudy.enroll` |
 | 信息图 | `infographics.list` / `infographics.get` / `infographics.start` / `infographics.saveCanvas` / `infographics.visibility` |
+| 组件讨论 | `canvasComments.list` / `canvasComments.send` / `canvasComments.resolve` / `canvasComments.model` |
 | 周报 | `weekly.overview` / `weekly.generate` / `weekly.list` / `weekly.get` / `weekly.deleted` / `weekly.reviewSession` / `weekly.enroll` / `weekly.grade` |
 | 共用 | `tasks.get` / `tasks.list` / `tasks.cancel` / `sources.catalog` / `sources.get` / `reports.get` |
 
-Chrome `/module` 只开放所需的配置读取、材料读取 / 分析及任务状态 / 取消动作，沿用本机随机令牌和来源校验。
+Chrome `/module` 只开放所需的配置读取、材料读取 / 分析、组件讨论及任务状态 / 取消动作，沿用本机随机令牌和来源校验。
+
+组件讨论按笔记和画布类型隔离，元素编号负责定位，内容哈希负责识别来源变化，移动位置不使讨论失效。发送前保存画布并校验服务端内容；问题使用独立请求编号及 `tasks.start({once: true})`，丢失响应后的重试复用任务。关闭讨论面板不会取消后台回答，手动停止或关闭功能会取消任务。讨论和来源快照纳入模块备份与永久删除流程。
 
 ## 来源与模型约定
 
