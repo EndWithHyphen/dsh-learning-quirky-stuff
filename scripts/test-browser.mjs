@@ -274,15 +274,19 @@ try {
     () => window.__qaCanvas.getSceneElements().find((e) => e.id === 'qa-long')?.width < 900,
   );
   await panel.getByRole('button', { name: '保存', exact: true }).first().click();
+  for (let i = 0; i < 100; i++) {
+    const persisted = (await store.read(note.id)).scene.elements.find((e) => e.id === 'qa-long');
+    if (persisted?.text.includes('\n') && persisted.autoResize === false) break;
+    if (i === 99) throw new Error('Wrapped text was not saved: ' + JSON.stringify(persisted));
+    await panel.waitForTimeout(50);
+  }
   await panel.reload();
   await panel.waitForFunction(() => window.__qaCanvas);
-  assert.ok(
-    await panel.evaluate(() =>
-      window.__qaCanvas
-        .getSceneElements()
-        .find((e) => e.id === 'qa-long')
-        .text.includes('\n'),
-    ),
+  await panel.waitForFunction(() =>
+    window.__qaCanvas
+      .getSceneElements()
+      .find((e) => e.id === 'qa-long')
+      ?.text.includes('\n'),
   );
   await panel.evaluate(() => {
     const api = window.__qaCanvas;
@@ -375,6 +379,21 @@ try {
 } catch (error) {
   await mkdir('dist/qa', { recursive: true });
   if (panel) await panel.screenshot({ path: 'dist/qa/browser-failure.png' });
+  if (panel)
+    await writeFile(
+      'dist/qa/browser-state.json',
+      JSON.stringify(
+        await panel.evaluate(() => ({
+          elements: window.__qaCanvas?.getSceneElements(),
+          state: {
+            width: window.__qaCanvas?.getAppState().width,
+            zoom: window.__qaCanvas?.getAppState().zoom,
+          },
+        })),
+        null,
+        2,
+      ),
+    );
   throw error;
 } finally {
   await browser.close();
