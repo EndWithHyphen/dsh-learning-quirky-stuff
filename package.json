@@ -1,0 +1,166 @@
+{
+  "name": "dsh-learning-quirky-stuff",
+  "version": "4.3.1",
+  "description": "学习画板：手写与截图笔记、AI 图文总结、系统学习、知识图谱、间隔复习和周报",
+  "type": "module",
+  "license": "MIT",
+  "icon": "./icon.svg",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "core.js",
+    "model.js",
+    "cordis.patch.yml",
+    "icon.svg",
+    "locale",
+    "README.md",
+    "study-schema.js",
+    "learning.js",
+    "capture-server.js",
+    "codex-provider.js",
+    "web-notes.js",
+    "graph-ai.js",
+    "summary-prompt.js",
+    "trash.js",
+    "codex-models.js",
+    "summary-sources.js",
+    "summary-selection.js",
+    "graph-data.js",
+    "server",
+    "shared",
+    "native",
+    "ARCHITECTURE.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "licenses",
+    "native/bin",
+    "docs/user-guide.html",
+    "docs/privacy.md",
+    "docs/install.md",
+    "docs/validation.md",
+    "docs/dependency-security.md",
+    "plugin-config.js"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "format": "prettier --write \"*.js\" \"server/**/*.js\" \"shared/**/*.js\" \"src/**/*.{js,jsx,css}\" \"chrome-extension/*.{js,css,html}\" \"scripts/*.mjs\" \"tests/*.mjs\"",
+    "check:format": "prettier --check \"server/**/*.js\" \"shared/**/*.js\" \"src/features/**/*.{js,jsx,css}\"",
+    "build:native": "node scripts/build-native.mjs",
+    "licenses": "node scripts/third-party.mjs",
+    "check:package": "node scripts/check-package.mjs",
+    "test:install": "node scripts/test-install.mjs",
+    "release:local": "node scripts/release.mjs",
+    "release:metadata": "node scripts/release-metadata.mjs",
+    "prepack": "npm run build && npm run check:package",
+    "test:browser": "node scripts/test-browser.mjs",
+    "test:system-study-browser": "node scripts/test-system-study-browser.mjs",
+    "test:infographics-browser": "node scripts/test-infographics-browser.mjs",
+    "check:registry": "node scripts/check-registry.mjs",
+    "test:diagram-dependencies": "node scripts/test-diagram-dependencies.mjs",
+    "market:generate": "node scripts/market-index.mjs"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.1.0",
+    "@deepseek-ai/dsh-api-gateway": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-attachment": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-modules": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-layout": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-sidebar": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-scope": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-util-values": "0.2.2-rc.1",
+    "@excalidraw/excalidraw": "0.18.1",
+    "@testing-library/dom": "10.4.1",
+    "@testing-library/react": "16.3.0",
+    "dagre-d3-es": "7.0.10",
+    "esbuild": "^0.25.12",
+    "jspdf": "4.2.1",
+    "playwright": "1.56.1",
+    "prettier": "3.6.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.1.0",
+    "@deepseek-ai/dsh": ">=0.2.2-rc.1 <0.3.0",
+    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-scope": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-attachment": "0.2.2-rc.1"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "3.19.0",
+    "@mozilla/readability": "0.6.0",
+    "jsdom": "26.1.0",
+    "proper-lockfile": "4.1.2",
+    "ts-fsrs": "6.0.0"
+  },
+  "author": "Qiangsheng Liu",
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "whiteboard",
+    "learning",
+    "notes"
+  ],
+  "engines": {
+    "node": ">=24",
+    "dsh": ">=0.2.2-rc.1 <0.3.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "overrides": {
+    "nanoid@3.3.3": "3.3.20",
+    "nanoid@4.0.2": "5.1.16",
+    "mermaid": {
+      "katex": "0.18.10"
+    },
+    "@deepseek-ai/dsh-llm": {
+      "zod": "4.6.7"
+    },
+    "lodash-es": "4.18.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EndWithHyphen/dsh-learning-quirky-stuff.git"
+  },
+  "homepage": "https://github.com/EndWithHyphen/dsh-learning-quirky-stuff#readme",
+  "bugs": {
+    "url": "https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/issues"
+  }
+}

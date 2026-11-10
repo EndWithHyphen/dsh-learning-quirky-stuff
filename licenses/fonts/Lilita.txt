@@ -1,0 +1,6 @@
+Font: Lilita
+Source: Excalidraw v0.18.0 distribution
+
+Copyright (c) 2011 Juan Montoreano (juan@remolacha.biz), with Reserved Font Names "Lilita One"
+
+http://scripts.sil.org/OFL

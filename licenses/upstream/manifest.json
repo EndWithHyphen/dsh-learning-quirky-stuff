@@ -1,0 +1,328 @@
+{
+  "@excalidraw/excalidraw": {
+    "versions": [
+      "0.18.0",
+      "0.18.1"
+    ],
+    "sha256": "dcc3489dff62805b351671092e2ec11435c0c893b209cf0ded1131fd8cc683cc",
+    "source": "https://raw.githubusercontent.com/excalidraw/excalidraw/a2ec2889babf7d2295469c6d90ebe77fae57df84/LICENSE"
+  },
+  "@radix-ui/primitive": {
+    "versions": [
+      "1.0.0",
+      "1.1.1"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-arrow": {
+    "versions": [
+      "1.1.2"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-collection": {
+    "versions": [
+      "1.0.1"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-compose-refs": {
+    "versions": [
+      "1.0.0",
+      "1.1.1"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-context": {
+    "versions": [
+      "1.0.0",
+      "1.1.1"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-direction": {
+    "versions": [
+      "1.0.0"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-dismissable-layer": {
+    "versions": [
+      "1.1.5"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-focus-guards": {
+    "versions": [
+      "1.1.1"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-focus-scope": {
+    "versions": [
+      "1.1.2"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-id": {
+    "versions": [
+      "1.0.0",
+      "1.1.0"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-popover": {
+    "versions": [
+      "1.1.6"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-popper": {
+    "versions": [
+      "1.2.2"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-portal": {
+    "versions": [
+      "1.1.4"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-presence": {
+    "versions": [
+      "1.0.0",
+      "1.1.2"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-primitive": {
+    "versions": [
+      "1.0.1",
+      "2.0.2"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-roving-focus": {
+    "versions": [
+      "1.0.2"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-slot": {
+    "versions": [
+      "1.0.1",
+      "1.1.2"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-tabs": {
+    "versions": [
+      "1.0.2"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-use-callback-ref": {
+    "versions": [
+      "1.0.0",
+      "1.1.0"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-use-controllable-state": {
+    "versions": [
+      "1.0.0",
+      "1.1.0"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-use-escape-keydown": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-use-layout-effect": {
+    "versions": [
+      "1.0.0",
+      "1.1.0"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "@radix-ui/react-use-size": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "4d59ded1a4f89775390a21e3109ef9243a7fcda9df76ef2f0f80028f5e8eda83",
+    "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE"
+  },
+  "dagre-d3-es": {
+    "versions": [
+      "7.0.10"
+    ],
+    "sha256": "e38b3de026000126cbaab5890660ceb2b8e942c65736a518ec00c2550b42a035",
+    "source": "https://github.com/tbo47/dagre-es/tree/f14d9a1a7dd13d2448b86e4aa8e496e1e585596a"
+  },
+  "micromark-core-commonmark": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-factory-destination": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-factory-label": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-factory-space": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-factory-title": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-factory-whitespace": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-util-character": {
+    "versions": [
+      "1.2.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-util-chunked": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-util-classify-character": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-util-combine-extensions": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-util-decode-numeric-character-reference": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-util-decode-string": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-util-html-tag-name": {
+    "versions": [
+      "1.2.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-util-normalize-identifier": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-util-resolve-all": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark-util-subtokenize": {
+    "versions": [
+      "1.1.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "micromark": {
+    "versions": [
+      "3.2.0"
+    ],
+    "sha256": "6c7b77126e70e92d628537c02d49c95514b320103c50f483ad7a503955f32824",
+    "source": "https://raw.githubusercontent.com/micromark/micromark/94b7679646bc0221899bba034f52f4abb3700f81/license"
+  },
+  "react-remove-scroll-bar": {
+    "versions": [
+      "2.3.8"
+    ],
+    "sha256": "e78d042a9fd5b909fe38fd90ce3e7bef4cfc74b83a0e3bd080c4fec857dc321a",
+    "source": "https://raw.githubusercontent.com/theKashey/react-remove-scroll-bar/8ca9ba5ea52de03308fe8ced94f7b159a44d28ff/LICENSE"
+  },
+  "saxes": {
+    "versions": [
+      "6.0.0"
+    ],
+    "sha256": "90531aed8d15a395be4a823816b14b88ecd8aee39f7d71cc0c373326c113e861",
+    "source": "https://raw.githubusercontent.com/lddubeau/saxes/4968bd09b5fd0270a989c69913614b0e640dae1b/LICENSE"
+  },
+  "fastdom": {
+    "versions": [
+      "1.0.12"
+    ],
+    "sha256": "120826010df5c13f56168f14487b55065e5ea7996662f8b52edd272695a731a9",
+    "source": "https://registry.npmjs.org/fastdom/-/fastdom-1.0.12.tgz"
+  }
+}

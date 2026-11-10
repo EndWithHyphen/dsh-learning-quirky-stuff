@@ -1,0 +1,79 @@
+body {
+  margin: 0;
+  background: #f5f7f5;
+  color: #20332a;
+  font:
+    15px/1.7 -apple-system,
+    BlinkMacSystemFont,
+    'PingFang SC',
+    sans-serif;
+}
+main {
+  max-width: 540px;
+  margin: 60px auto;
+  padding: 38px;
+  background: white;
+  border: 1px solid #e0e8e2;
+  border-radius: 18px;
+}
+.mark {
+  font-size: 36px;
+  color: #527b69;
+}
+h1 {
+  font-size: 25px;
+  font-weight: 600;
+  margin: 8px 0;
+}
+p {
+  color: #66766d;
+}
+label {
+  display: block;
+  margin-top: 25px;
+  font-size: 13px;
+}
+input {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #bdcdc1;
+  border-radius: 8px;
+  margin: 8px 0 14px;
+}
+button {
+  background: #345a46;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 18px;
+  font: inherit;
+  cursor: pointer;
+}
+section {
+  border-top: 1px solid #e0e8e2;
+  margin-top: 30px;
+  padding-top: 14px;
+}
+h2 {
+  font-size: 17px;
+}
+kbd {
+  background: #edf2ee;
+  border: 1px solid #c9d6cd;
+  border-radius: 4px;
+  padding: 2px 5px;
+}
+a {
+  color: #345a46;
+}
+small {
+  display: block;
+  margin-top: 28px;
+  color: #7a897f;
+}
+#status {
+  font-size: 13px;
+  min-height: 22px;
+}

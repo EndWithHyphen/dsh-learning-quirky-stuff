@@ -1,0 +1,32 @@
+[
+  {
+    "component": "Excalifont",
+    "url": "https://raw.githubusercontent.com/excalidraw/excalidraw/v0.18.0/packages/excalidraw/fonts/Excalifont/index.ts",
+    "sha256": "7015b0ca8cf5fc6a41008ce4cbcfbb93e1544b46678234f4ee688cf578464b61"
+  },
+  {
+    "component": "Xiaolai",
+    "url": "https://raw.githubusercontent.com/excalidraw/excalidraw/v0.18.0/packages/excalidraw/fonts/Xiaolai/index.ts",
+    "sha256": "63d432365e01385b4e290369e31ff33e1ac1fc00205d74f688808c444ddd2b3f"
+  },
+  {
+    "component": "ComicShanns",
+    "url": "https://raw.githubusercontent.com/excalidraw/excalidraw/v0.18.0/packages/excalidraw/fonts/ComicShanns/index.ts",
+    "sha256": "96ee3ed4206b4f226382d44d4622405b7f61b07dedc71e9c0cc3fe2fbb9f26a2"
+  },
+  {
+    "component": "Assistant",
+    "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/assistant/OFL.txt",
+    "sha256": "7eaf6282cfab122b99ffd62a122fc27b6c3c8f2c65b56ff9b3a25badbc64887d"
+  },
+  {
+    "component": "Nunito",
+    "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/nunito/OFL.txt",
+    "sha256": "580df76c95a1ec5ab878ceb25bb3d85c6a076804e9c970c8c6972aea775fdf65"
+  },
+  {
+    "component": "Lilita",
+    "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/lilitaone/OFL.txt",
+    "sha256": "255d5debbb80eb2ea762644311f266a279e8778f00156655a516e2b7781a63e1"
+  }
+]

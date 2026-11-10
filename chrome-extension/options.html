@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>
+    学习画板快捷笔记</title
+  ><link rel="stylesheet" href="options.css" />
+  <main>
+    <div class="mark">▤</div>
+    <h1>边看文章和视频，边记笔记</h1>
+    <p>首次在 DSH 中确认一次，之后自动连接，无需填写连接码。</p>
+    <label>本机 DSH 端口 <input id="port" type="number" min="1024" max="65535" value="43127" /></label>
+    <button id="check">连接本机 DSH</button>
+    <p>当前扩展 ID：<code id="extension-id"></code></p>
+    <p id="status" role="status"></p>
+    <p id="panel-status" role="alert"></p>
+    <section>
+      <h2>使用方式</h2>
+      <p>
+        在网页上按 <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>Y</kbd>，或点击扩展图标。Chrome
+        会打开侧边笔记栏。你可以直接记录、粘贴图片，或点击「区域截图」「可见页截图」，自动同步到同一篇 DSH
+        笔记。
+      </p>
+      <p>DSH 未打开时会先在本机排队，打开后自动创建。</p>
+      <a href="chrome://extensions/shortcuts" id="shortcuts">修改快捷键</a>
+    </section>
+    <p>
+      <a href="privacy.html" target="_blank" rel="noopener">数据处理说明</a> ·
+      <a href="THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener">第三方许可</a>
+    </p>
+    <small
+      >只在你触发快捷键或点击图标时读取当前页标题与链接。截图仅在你点击截图或粘贴时保存；随手记和截图同步到本机
+      DSH。</small
+    >
+  </main>
+  <script type="module" src="options.js"></script>
+</html>

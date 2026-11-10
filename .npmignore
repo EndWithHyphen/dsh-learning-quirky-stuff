@@ -1,0 +1,7 @@
+QA.md
+qa/
+.env*
+release.local.json
+**/connection.json
+**/connection.json.bak
+**/*.log

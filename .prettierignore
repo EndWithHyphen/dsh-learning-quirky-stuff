@@ -1,0 +1,10 @@
+node_modules
+dist
+qa
+client.js
+chrome-extension/canvas.js
+chrome-extension/page-reader.js
+chrome-extension/assets
+
+src/generated/
+chrome-extension/help.html

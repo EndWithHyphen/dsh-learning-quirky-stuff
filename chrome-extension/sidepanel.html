@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>学习画板 · 边看边记</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+    <link rel="stylesheet" href="preview-panel.css" />
+  </head>
+  <body>
+    <header class="brand">
+      <div><span class="logo">▤</span><strong>边看边记</strong></div>
+      <div class="brand-actions">
+        <a
+          class="manual-link"
+          href="help.html"
+          target="_blank"
+          rel="noopener"
+          title="学习画板使用说明"
+          aria-label="使用说明"
+          >说明</a
+        >
+        <a class="manual-link" href="options.html" target="_blank" rel="noopener" title="浏览器连接设置"
+          >连接</a
+        >
+        <button id="dock-mode" title="从网页底部打开笔记">底部打开</button
+        ><button id="retry" title="重新连接和同步">↻</button
+        ><button id="close-dock" title="关闭底部笔记" aria-label="关闭底部笔记" hidden>×</button>
+      </div>
+    </header>
+    <main>
+      <section id="empty">
+        <div class="empty-icon">✎</div>
+        <h1>看见想法，顺手记下</h1>
+        <p>在文章或视频网页按 <kbd>⌘ Shift Y</kbd>，或点击扩展图标，打开当前页的笔记。</p>
+      </section>
+      <section id="workspace" hidden>
+        <div class="workspace-tools">
+          <div class="source">
+            <span>当前笔记</span>
+            <h1 id="title"></h1>
+            <a id="source" target="_blank" rel="noreferrer"></a>
+          </div>
+          <div id="status" role="status" aria-live="polite"></div>
+          <div id="error" role="alert" hidden></div>
+          <div class="capture-buttons">
+            <button
+              id="capture-region"
+              title="区域截图（Option/Alt + Shift + S）"
+              aria-keyshortcuts="Alt+Shift+S"
+              aria-label="区域截图"
+            >
+              <span>▧ 区域截图</span><kbd data-shot-key="region">⌥⇧S</kbd></button
+            ><button
+              id="capture-full"
+              title="可见页截图（Option/Alt + Shift + V）"
+              aria-keyshortcuts="Alt+Shift+V"
+              aria-label="可见页截图"
+            >
+              <span>▣ 可见页截图</span><kbd data-shot-key="full">⌥⇧V</kbd>
+            </button>
+          </div>
+          <button id="cancel-capture" hidden>取消截图 · Esc</button>
+          <div id="pending-image" hidden></div>
+          <nav class="mode-tabs" role="tablist" aria-label="记录方式">
+            <button id="tab-canvas" role="tab" aria-controls="canvas-section" aria-selected="true">
+              手写画布</button
+            ><button id="tab-notes" role="tab" aria-controls="notes-section" aria-selected="false">
+              随手记</button
+            ><button id="tab-preview" role="tab" aria-controls="preview-section" aria-selected="false" hidden>
+              材料预览
+            </button>
+          </nav>
+        </div>
+        <div class="workspace-body">
+          <section id="canvas-section" role="tabpanel" aria-labelledby="tab-canvas">
+            <div id="canvas-focus-toolbar" hidden>
+              <span
+                id="focus-save-status"
+                data-state="saved"
+                role="status"
+                aria-label="笔记已保存到 DSH"
+                title="笔记已保存到 DSH"
+              ></span
+              ><span id="focus-note-title"></span
+              ><button id="focus-capture-region" aria-label="区域截图" title="区域截图（⌥⇧S）">▧ 区域</button
+              ><button id="focus-capture-full" aria-label="可见页截图" title="可见页截图（⌥⇧V）">
+                ▣ 可见页</button
+              ><button id="focus-learning" title="学习控件" aria-label="学习控件">＋ 学习</button
+              ><button id="focus-help" title="画布快捷键" aria-label="画布快捷键">?</button
+              ><button id="focus-exit" title="退出专注（Esc）">退出专注</button>
+            </div>
+            <div id="focus-error" role="alert" hidden>
+              <span></span><button id="focus-error-close" aria-label="关闭提示">×</button>
+            </div>
+            <div id="focus-notice" role="status" hidden></div>
+            <button id="focus-cancel-capture" hidden>取消截图 · Esc</button>
+            <div id="canvas-loading" role="status">正在准备画布…</div>
+            <div id="canvas-root"></div>
+          </section>
+          <section id="notes-section" role="tabpanel" aria-labelledby="tab-notes" hidden>
+            <div id="conflict" hidden>
+              <p>DSH 中的内容已更新。你的草稿仍在这里。</p>
+              <div><button id="fork">另存我的草稿</button><button id="use-remote">使用 DSH 版本</button></div>
+            </div>
+            <label class="notes-label" for="notes">随手记 <span>自动保存</span></label
+            ><textarea
+              id="notes"
+              placeholder="一边看，一边记下你的理解、疑问或联想…&#10;&#10;也可以直接粘贴截图。"
+              spellcheck="false"
+              maxlength="50000"
+            ></textarea>
+            <div class="save-line"><span id="count">0 字</span><button id="save">立即保存</button></div>
+          </section>
+          <section id="preview-section" role="tabpanel" aria-labelledby="tab-preview" hidden>
+            <div id="preview-root"></div>
+          </section>
+          <section id="images-section" hidden>
+            <h2>截图 <span id="image-count"></span></h2>
+            <div id="image-undo" role="status" hidden>
+              <span>截图已删除</span><button id="undo-image">撤销删除</button>
+            </div>
+            <div id="gallery"></div>
+            <details id="deleted-section" hidden>
+              <summary id="deleted-count">已删除的截图</summary>
+              <div id="deleted-gallery"></div>
+            </details>
+          </section>
+        </div>
+        <footer>画布可手写、圈画、贴图。与 DSH 使用同一篇笔记，可继续总结、复习和导出白板 PDF。</footer>
+      </section>
+    </main>
+    <dialog id="image-dialog">
+      <button id="close-image" aria-label="关闭图片">×</button><img id="large-image" alt="截图预览" />
+    </dialog>
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>

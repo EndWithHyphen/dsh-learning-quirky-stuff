@@ -1,0 +1,324 @@
+.sb-system-panel {
+  z-index: 80;
+}
+.sb-system-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--sb-line);
+  flex: 0 0 auto;
+}
+.sb-system-tabs .sb-button {
+  min-height: 34px;
+  font-size: 12px;
+}
+.sb-system-inner {
+  padding: 24px 30px 80px;
+  max-width: 1600px;
+  margin: auto;
+}
+.sb-system-topbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.sb-system-topbar select {
+  flex: 1;
+  min-width: 0;
+}
+.sb-system-form {
+  max-width: 850px;
+  border: 1px solid var(--sb-line);
+  padding: 22px 26px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  background: var(--sb-bg);
+}
+.sb-system-form h3 {
+  margin: 0 0 10px;
+}
+.sb-system-form > label {
+  display: block;
+  margin: 16px 0;
+}
+.sb-system-form input:not([type='checkbox']),
+.sb-system-form textarea,
+.sb-system-form select {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+}
+.sb-system-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 20px;
+  margin-top: 18px;
+}
+.sb-system-model {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sb-system-model select {
+  min-width: 0;
+}
+.sb-system-model .sb-icon {
+  flex-shrink: 0;
+  margin-top: 7px;
+}
+.sb-system-options {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+.sb-system-options label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+}
+.sb-system-options input {
+  margin: 0;
+  accent-color: var(--sb-accent);
+}
+.sb-system-form > .sb-button {
+  margin-top: 14px;
+}
+.sb-system-form .sb-muted {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.sb-system-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 24px;
+}
+.sb-system-title h1 {
+  font-size: 28px;
+  line-height: 1.4;
+  margin: 8px 0;
+}
+.sb-system-title p {
+  color: var(--sb-muted);
+  font-size: 15px;
+}
+.sb-system-title > .sb-button {
+  flex-shrink: 0;
+}
+.sb-system-overview {
+  max-width: 75ch;
+  line-height: 1.9;
+  margin: 18px 0;
+}
+.sb-system-strategy {
+  border-top: 1px solid var(--sb-line);
+  padding: 12px 0;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.sb-system-strategy summary {
+  cursor: pointer;
+  color: var(--sb-muted);
+}
+.sb-system-canvas {
+  border: 1px solid var(--sb-line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--sb-bg);
+  margin: 18px 0 26px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.sb-system-canvas.is-full {
+  position: fixed;
+  inset: 12px;
+  z-index: 1200;
+  margin: 0;
+  box-shadow: 0 10px 60px #0003;
+}
+.sb-system-canvas-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--sb-panel);
+}
+.sb-system-canvas-actions > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.sb-system-canvas-actions .sb-button {
+  font-size: 11px;
+  min-height: 30px;
+  padding: 5px 10px;
+}
+.sb-system-canvas-actions span {
+  font-size: 11px;
+  color: var(--sb-muted);
+  margin-right: auto;
+}
+.sb-system-workspace {
+  display: flex;
+  height: 680px;
+  max-height: 75vh;
+  min-height: 380px;
+}
+.is-full .sb-system-workspace {
+  flex: 1;
+  max-height: none;
+  height: auto;
+  min-height: 0;
+}
+.sb-system-drawing {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sb-system-engine {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.sb-system-engine > .excalidraw {
+  height: 100%;
+}
+.sb-system-canvas-hint {
+  font-size: 11px;
+  color: var(--sb-muted);
+  margin: 0;
+  padding: 9px 12px;
+  border-top: 1px solid var(--sb-line);
+}
+.sb-system-evidence {
+  width: 310px;
+  max-width: 38%;
+  overflow: auto;
+  padding: 16px;
+  border-left: 1px solid var(--sb-line);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.sb-system-evidence > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sb-system-evidence h4 {
+  margin: 20px 0 6px;
+}
+.sb-system-evidence p {
+  white-space: pre-wrap;
+}
+.sb-system-origin {
+  display: inline-block;
+  padding: 4px 7px;
+  border: 1px solid var(--sb-line);
+  border-radius: 4px;
+  margin-top: 12px;
+  font-size: 11px;
+}
+.sb-system-evidence .sb-evidence-links {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.sb-system-evidence .sb-evidence-links button {
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.sb-system-next,
+.sb-system-review {
+  margin-top: 32px;
+}
+.sb-system-next article,
+.sb-system-review article {
+  border-top: 1px solid var(--sb-line);
+  padding: 16px 0;
+  max-width: 900px;
+}
+.sb-system-next h4,
+.sb-system-review h4 {
+  font-size: 15px;
+  margin: 0 0 10px;
+}
+.sb-system-next p,
+.sb-system-review p {
+  font-size: 13px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+.sb-system-review details {
+  margin: 12px 0;
+  font-size: 13px;
+}
+.sb-system-review summary {
+  cursor: pointer;
+  color: var(--sb-muted);
+}
+.sb-system-review .sb-button {
+  font-size: 12px;
+}
+.sb-system-trash {
+  margin-top: 30px;
+  border-top: 1px solid var(--sb-line);
+  padding-top: 16px;
+  font-size: 13px;
+}
+.sb-system-trash > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  padding: 12px 0;
+}
+@media (max-width: 850px) {
+  .sb-system-inner {
+    padding: 20px 16px 60px;
+  }
+  .sb-system-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .sb-system-title,
+  .sb-system-topbar {
+    flex-wrap: wrap;
+  }
+  .sb-system-workspace {
+    height: 580px;
+  }
+  .sb-system-evidence {
+    width: 240px;
+  }
+  .sb-system-form {
+    padding: 18px;
+  }
+  .sb-system-title h1 {
+    font-size: 23px;
+  }
+}
+@media (max-width: 600px) {
+  .sb-system-evidence {
+    max-width: 48%;
+    padding: 10px;
+  }
+  .sb-system-canvas-actions .sb-button {
+    font-size: 10px;
+  }
+  .sb-system-canvas-hint {
+    font-size: 10px;
+  }
+}
