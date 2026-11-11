@@ -22,6 +22,11 @@ export async function checkPackage({ release = false } = {}) {
     'docs/privacy.md',
     'docs/install.md',
     'docs/user-guide.html',
+    'pdf-assets/pdf.worker.min.mjs',
+    'pdf-assets/cmaps/UniGB-UCS2-H.bcmap',
+    'pdf-assets/standard_fonts/LiberationSans-Regular.ttf',
+    'pdf-assets/wasm/openjpeg.wasm',
+    'pdf-assets/LICENSE',
   ])
     await access(f);
   if (
@@ -69,6 +74,14 @@ export async function checkPackedFiles(files) {
       throw new Error('Private or unexpected file in package: ' + path);
   if (!files.some((f) => f.path === 'LICENSE') || !files.some((f) => f.path === 'THIRD_PARTY_NOTICES.md'))
     throw new Error('Missing release licenses');
+  for (const path of [
+    'pdf-assets/pdf.worker.min.mjs',
+    'pdf-assets/cmaps/UniGB-UCS2-H.bcmap',
+    'pdf-assets/standard_fonts/LiberationSans-Regular.ttf',
+    'pdf-assets/wasm/openjpeg.wasm',
+    'pdf-assets/LICENSE',
+  ])
+    if (!files.some((f) => f.path === path)) throw new Error('Missing offline PDF asset: ' + path);
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   console.log(JSON.stringify(await checkPackage({ release: process.argv.includes('--release') })));

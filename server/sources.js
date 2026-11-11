@@ -1,3 +1,4 @@
+import { elementPdfReference } from '../shared/pdf.js';
 import { stat, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { legacyStudy } from '../study-schema.js';
@@ -35,7 +36,11 @@ export class SourceRepository {
       .filter((name) => name.endsWith('.json') && !this.store.purged.has(name.slice(0, -5)))
       .map((name) => name.slice(0, -5));
   }
-  async noteRecords(id, { allSummaries = false } = {}) {
+  async noteRecords(id, options = {}) {
+    const records = await this.baseNoteRecords(id, options);
+    return this.pdf ? [...records, ...(await this.pdf.records(id))] : records;
+  }
+  async baseNoteRecords(id, { allSummaries = false } = {}) {
     const fileInfo = await stat(this.store.boardPath(id)),
       indexInfo = await stat(this.index.path(id)).catch(() => ({ mtimeMs: 0, size: 0 })),
       cacheKey = id + ':' + allSummaries,
@@ -70,6 +75,12 @@ export class SourceRepository {
       if (element.type === 'text' && !element.customData?.studyboard?.imageNoteFor)
         add('canvas/' + element.id, element.originalText || element.text, 'canvas', board.title, {
           elementIds: [element.id],
+          ...(element.customData?.studyboard?.pdfSource
+            ? {
+                pdf: elementPdfReference(element),
+                page: elementPdfReference(element).page,
+              }
+            : {}),
         });
       if (element.type === 'image') {
         const shot = (board.webImages || []).find((image) => image.id === element.id),
@@ -81,7 +92,11 @@ export class SourceRepository {
           [note, shot?.caption, valid ? (cached.manualText ?? cached.text) : ''].filter(Boolean).join('\n'),
           'image',
           note.slice(0, 60) || shot?.caption || '画布图片',
-          { elementIds: [element.id], seconds: shot?.videoTime ?? null },
+          {
+            elementIds: [element.id],
+            seconds: shot?.videoTime ?? null,
+            ...(elementPdfReference(element) ? { pdf: elementPdfReference(element) } : {}),
+          },
         );
       }
     }

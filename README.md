@@ -4,6 +4,7 @@
 
 Studyboard is a local learning workspace for DeepSeek Harness: handwritten notes, screenshots, structured AI summaries, editable infographics, source-linked knowledge graphs and spaced review.
 
+- **PDF 阅读与笔记（4.5.0 开发版）**：在笔记中导入或关联 PDF，选文划线、手写批注、截取公式与图表到画布、向 AI 提问，并从摘录回到原页。同一原件可供多篇笔记引用。
 - **自由白板**：触控笔、图片、形状、箭头、文字、自动保存、PDF 导出。
 - **结构化记录**：提问卡、编号知识点、对比卡、步骤卡、图片备注；选定区域后自动排版，双击卡片编辑。
 - **组件提问与备注**：选中文字、图片或一组组件向模型提问，继续追问或留下自己的备注。讨论标记跟随组件，支持已解决、重新打开和来源变化提示。
@@ -19,9 +20,9 @@ Studyboard is a local learning workspace for DeepSeek Harness: handwritten notes
 
 ## 安装
 
-当前版本 **4.4.2** 适配 DSH **0.2.2-rc.1**。macOS 13+ 为完整功能的首批验证平台；发布包附带 Apple Silicon / Intel 本机识别程序。Linux、Windows 的通用功能可运行，但尚未完成完整平台验收，图片识别与本机 PDF 提取会明确提示不支持。
+已发布版本 **4.4.2** 适配 DSH **0.2.2-rc.1**。macOS 13+ 为完整功能的首批验证平台；发布包附带 Apple Silicon / Intel 本机识别程序。Linux、Windows 的通用功能可运行，但尚未完成完整平台验收，图片识别与本机 PDF 提取会明确提示不支持。
 
-4.4.2 修复组件提问、自动换行、回答 Markdown 和重试状态，并支持删除备注草稿。
+4.4.2 修复组件提问、自动换行、回答 Markdown 和重试状态，并支持删除备注草稿。主分支正在开发 **4.5.0** 的 PDF 阅读与笔记功能；npm 与插件市场目前仍提供 4.4.2。
 
 
 桌面版通过 DSH「插件」页面添加 npm 包 `dsh-learning-quirky-stuff@4.4.2`。离线安装可从 [Releases](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases) 下载 `.tgz`，解压后选择 `package` 目录。`desktop` profile 由 Electron 应用管理，CLI 不允许直接修改。
@@ -59,6 +60,22 @@ Chrome 配套为 [Release 中的独立 ZIP](https://github.com/EndWithHyphen/dsh
 <img src="https://raw.githubusercontent.com/EndWithHyphen/dsh-learning-quirky-stuff/main/docs/images/dsh-review.png" alt="DSH 今日复习：独立作答、参考答案与下一次复习安排" width="1000">
 
 上面三张截图使用同一份合成演示材料，展示实际插件界面，不包含个人笔记。分类、标签和各项学习模块可按自己的习惯配置；系统学习、专题工作台与周报的完整操作见[使用说明](docs/user-guide.html)。
+
+## PDF 与笔记统一管理（4.5.0 开发版）
+
+在笔记列表点击「导入 PDF」建立笔记，或在已有笔记顶部点击「PDF」导入、关联已有文件。左侧读原文，右侧整理画布，分类、标签与回收站沿用笔记体系。
+
+1. 选中文字后「划线 / 批注」，或切到「笔迹」圈画；「摘录文字」把可编辑摘录放到画布。
+2. 对公式、图表用「框选 → 截取到画布」保留原样；摘录记录文件、页码及选区，选中后点「回到 PDF」定位原文。
+3. 在原页选区点「提问」或选中画布摘录点「提问 / 备注」。AI 回答、原文和个人批注分别保留来源。
+4. 扫描页可在 macOS 点「识别当前页」或框选后「识别文字」，核对并修改后保存，再摘录到画布。
+5. 需要总结、信息图或复习时，先把本次要研究的片段放入画布，再使用现有 AI 总结及学习模块。阅读过的页、全文搜索时已解析的页和核对后的 OCR 也进入统一来源检索。
+
+<img src="https://raw.githubusercontent.com/EndWithHyphen/dsh-learning-quirky-stuff/main/docs/images/dsh-pdf.png" alt="PDF 阅读与笔记：双栏原文、划线批注和带页码的公式图表摘录" width="1000">
+
+截图使用项目生成的合成材料。
+
+支持双栏选文、缩放、旋转、目录、全文查找与密码 PDF；密码仅在当前阅读会话使用，不写入存储。原件、解析文字、批注和 PDF.js 字体资源保存在本机，PDF 最大 128 MB。完整备份包含 PDF 时下载 ZIP，内含 `backup.json` 和去重后的原件。第一版入口位于 DSH；Chrome PDF 接入留待后续。
 
 ## Chrome 扩展：边看边记
 
@@ -107,6 +124,7 @@ npm run build
 npm test
 npm run test:browser
 npm run test:infographics-browser
+npm run test:pdf-browser
 npm run test:install
 npm run release:local
 ```

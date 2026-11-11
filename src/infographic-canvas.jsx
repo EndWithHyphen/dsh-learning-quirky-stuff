@@ -7,6 +7,7 @@ import { sameSceneContent, withKnownFiles, missingImageFiles } from './scene-syn
 import { bindCanvasShortcuts } from './canvas-shortcuts.js';
 import CanvasTools from './canvas-tools.jsx';
 import CanvasComments from './canvas-comments.jsx';
+import { useLearning } from './features/context.jsx';
 
 export default function InfographicCanvas({
   entry,
@@ -18,6 +19,7 @@ export default function InfographicCanvas({
   onError,
   sourcesInitially = false,
 }) {
+  const learning = useLearning();
   const dialog = useRef(),
     engine = useRef(),
     surface = useRef(),
@@ -343,6 +345,25 @@ export default function InfographicCanvas({
                 </small>
                 {sourceImages[source.id] && <img src={sourceImages[source.id]} alt={source.title} />}
                 {source.text && <p>{source.text}</p>}
+                {source.pdfSource && (
+                  <button
+                    className="sb-button"
+                    onClick={async () => {
+                      try {
+                        await flush();
+                        onClose();
+                        learning.navigation.current.openSource?.({
+                          boardId: source.pdfSource.noteId || entry.noteId,
+                          locator: { pdf: source.pdfSource },
+                        });
+                      } catch (e) {
+                        onError(e);
+                      }
+                    }}
+                  >
+                    打开 PDF 第 {source.pdfSource.page} 页 ↗
+                  </button>
+                )}
               </article>
             ))}
             {!references.length && <p>来源为这篇笔记的本次 AI 总结。</p>}

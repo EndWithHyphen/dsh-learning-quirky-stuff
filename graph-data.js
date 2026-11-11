@@ -1,3 +1,4 @@
+import { elementPdfReference } from './shared/pdf.js';
 import { createHash } from 'node:crypto';
 import { legacyStudy } from './study-schema.js';
 import { graphSummaries, summaryScopeKey } from './summary-selection.js';
@@ -105,6 +106,7 @@ export function buildGraphInput(boards, { includeHistory = false } = {}) {
             summaryId: null,
             conceptId: null,
             elementId: e.id,
+            ...(e.customData?.studyboard?.pdfSource ? { pdfSource: elementPdfReference(e) } : {}),
             kind: 'canvas',
             topicIds,
             title: '画布笔记',

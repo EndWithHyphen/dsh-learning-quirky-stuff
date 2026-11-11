@@ -1,3 +1,4 @@
+import { elementPdfReference } from '../shared/pdf.js';
 import { sourceImageCatalog } from '../summary-sources.js';
 
 /** Snapshot source identities, so a later canvas edit cannot silently change a figure's evidence. */
@@ -9,6 +10,7 @@ export function visualSourceSnapshot(board, elements, scope = 'board') {
     elementId: image.elementId,
     text: image.note || image.nearbyText || '',
     revision: board.revision,
+    ...(image.pdfSource ? { pdfSource: image.pdfSource } : {}),
   }));
   const texts = elements
     .filter((e) => e.type === 'text' && !e.isDeleted)
@@ -18,6 +20,7 @@ export function visualSourceSnapshot(board, elements, scope = 'board') {
       kind: 'text',
       title: '画布文字',
       elementId: e.id,
+      ...(e.customData?.studyboard?.pdfSource ? { pdfSource: elementPdfReference(e) } : {}),
       text: String(e.text || '').slice(0, 6000),
       revision: board.revision,
     }));

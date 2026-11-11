@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-export default function SourceFigure({ figure, asset, caption }) {
+export default function SourceFigure({ figure, asset, caption, onSource }) {
   const [open, setOpen] = useState(false),
     close = useRef(),
     trigger = useRef();
@@ -27,6 +27,11 @@ export default function SourceFigure({ figure, asset, caption }) {
         <span>点击放大</span>
       </button>
       {caption}
+      {asset.pdfSource && onSource && (
+        <button className="sb-button" onClick={() => onSource(asset.pdfSource)}>
+          PDF 来源 · 第 {asset.pdfSource.page} 页 ↗
+        </button>
+      )}
       {open && (
         <div
           className="sb-figure-overlay"

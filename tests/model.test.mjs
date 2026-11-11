@@ -104,7 +104,9 @@ test('总结允许等待半小时；超时原因与耗时落盘，重开面板�
   assert.equal(saved.status, 'error');
   assert.equal(saved.stopReason, 'SUMMARY_TIMEOUT');
   assert.ok(saved.finishedAt);
-  assert.ok(saved.elapsedMs >= 30);
+  // Millisecond wall-clock rounding can report 29 ms for a 30 ms Node timer.
+  assert.equal(saved.elapsedMs, Date.parse(saved.finishedAt) - Date.parse(saved.createdAt));
+  assert.ok(saved.elapsedMs >= jobs.timeoutMs - 2);
   assert.equal((await store.read(board.id)).summaries.length, 0);
 });
 

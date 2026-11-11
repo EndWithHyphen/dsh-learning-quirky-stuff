@@ -1,8 +1,15 @@
 export const FEATURES = [
   {
+    id: 'pdf',
+    title: 'PDF 阅读与笔记',
+    description: '在笔记中阅读 PDF、批注、摘录和提问，保留页码来源。',
+    model: false,
+    surface: 'note',
+  },
+  {
     id: 'canvasComments',
-    title: '画布提问与备注',
-    description: '选中组件提问，保留 AI 回答和自己的备注，标记随组件移动。',
+    title: '提问与备注',
+    description: '对画布组件或 PDF 原文提问，保留 AI 回答和自己的备注。',
     model: true,
     surface: 'note',
   },

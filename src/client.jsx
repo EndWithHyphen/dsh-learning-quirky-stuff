@@ -19,6 +19,10 @@ import shortcutCSS from './canvas-shortcuts.css';
 import ImageText from './image-text.jsx';
 import CanvasTools from './canvas-tools.jsx';
 import CanvasComments from './canvas-comments.jsx';
+import { appendPdfClip, focusPdfClip, PdfClipSource } from './pdf/clip.jsx';
+import { PDF_MAX_BYTES } from '../shared/pdf.js';
+import { packageNoteBackup } from './pdf/backup.js';
+const PdfWorkspace = React.lazy(() => import('./pdf/workspace.jsx'));
 import LearningWidgets from './learning-widgets.jsx';
 import { summaryCanvas } from './summary-canvas.js';
 import { originalSummaryElements } from '../summary-sources.js';
@@ -286,6 +290,7 @@ function StudyShell({ api, t }) {
     [toast, setToast] = useState(''),
     [working, setWorking] = useState(false);
   const editor = useRef(),
+    pdfImport = useRef(),
     tagPicker = useRef(),
     changingNotes = useRef(new Set()),
     boardRef = useRef(board),
@@ -413,7 +418,9 @@ function StudyShell({ api, t }) {
     }
   }
   async function openSource(source) {
-    if (source.reportId) {
+    if (source.locator?.pdf && source.boardId) {
+      await open(source.boardId, null, { pdf: source.locator.pdf });
+    } else if (source.reportId) {
       await openFeature(source.feature, {
         reportId: source.reportId,
         topicId: source.topicId,
@@ -439,6 +446,23 @@ function StudyShell({ api, t }) {
       await refresh();
     } catch (e) {
       fail(e);
+    }
+  }
+  async function createFromPdf(file) {
+    if (!file) return;
+    try {
+      if (file.size > PDF_MAX_BYTES) throw new Error('PDF 最大支持 128 MB');
+      await editor.current?.flush();
+      const folderId = lib?.folders.some((folder) => folder.id === view) ? view : null;
+      const created = await api('execute', {
+        action: 'create',
+        title: file.name.replace(/\.pdf$/i, ''),
+        folderId,
+      });
+      setBoard({ ...created, _pdfImport: file });
+      await refresh();
+    } catch (error) {
+      fail(error);
     }
   }
   async function home() {
@@ -593,9 +617,30 @@ function StudyShell({ api, t }) {
                 <p>{t('custom')}</p>
               </div>
             </div>
-            <Button primary icon="plus" onClick={create}>
-              {t('newNote')}
-            </Button>
+            <div className="sb-home-create-actions">
+              {moduleUI.enabled('pdf') && (
+                <>
+                  <input
+                    ref={pdfImport}
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    aria-label="导入 PDF 新建笔记"
+                    hidden
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      e.target.value = '';
+                      createFromPdf(file);
+                    }}
+                  />
+                  <Button icon="file" onClick={() => pdfImport.current.click()}>
+                    导入 PDF
+                  </Button>
+                </>
+              )}
+              <Button primary icon="plus" onClick={create}>
+                {t('newNote')}
+              </Button>
+            </div>
           </header>
           <div className="sb-home-body">
             <aside className="sb-nav">
@@ -723,11 +768,17 @@ function StudyShell({ api, t }) {
                   className="sb-nav-row"
                   onClick={async () => {
                     try {
-                      const backup = await api('execute', { action: 'backup' });
-                      download(
-                        new Blob([JSON.stringify(backup)], { type: 'application/json' }),
-                        `学习画板备份-${new Date().toISOString().slice(0, 10)}.json`,
+                      const backup = await api('execute', { action: 'backup', separateFiles: true });
+                      const packaged = await packageNoteBackup(
+                        backup,
+                        (request) => api('execute', request),
+                        setToast,
                       );
+                      download(
+                        packaged.blob,
+                        `学习画板备份-${new Date().toISOString().slice(0, 10)}.${packaged.extension}`,
+                      );
+                      setToast('备份已生成');
                     } catch (e) {
                       fail(e);
                     }
@@ -856,6 +907,7 @@ function StudyShell({ api, t }) {
                               <p>
                                 {relativeDate(n.updatedAt)}
                                 {n.summaryCount ? ` · ${t('summary')}` : ''}
+                                {n.pdfCount ? ` · PDF ${n.pdfCount}` : ''}
                               </p>
                               <div className="sb-tags">
                                 {n.tags.slice(0, 3).map((v) => (
@@ -1148,6 +1200,9 @@ const Board = React.forwardRef(function Board(
     [dark, setDark] = useState(document.body.hasAttribute('data-ds-dark-theme'));
   const [canvasEpoch, setCanvasEpoch] = useState(0),
     [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [pdfReading, setPdfReading] = useState(false),
+    [pdfSaving, setPdfSaving] = useState(false);
+  const pdfWorkspace = useRef();
   const canvasRoot = useRef(null),
     shortcutActions = useRef({}),
     learningWidgets = useRef(null),
@@ -1240,7 +1295,10 @@ const Board = React.forwardRef(function Board(
     }
   }, [api, board.id]);
   React.useImperativeHandle(ref, () => ({
-    flush,
+    flush: async () => {
+      await pdfWorkspace.current?.flush();
+      await flush();
+    },
     forget: async () => {
       forgotten.current = true;
       dirty.current = false;
@@ -1250,6 +1308,17 @@ const Board = React.forwardRef(function Board(
     },
   }));
   shortcutActions.current = { save: flush, pdf: () => setPdf(true), error: onError };
+  async function extractPdf(value) {
+    if (!excali.current) throw new Error('画布仍在载入');
+    const added = appendPdfClip(excali.current, value);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    focusPdfClip(excali.current, added, canvasRoot.current);
+    await flush();
+  }
+  const openPdfSource = (value) =>
+    value.noteId && value.noteId !== board.id
+      ? boardModules.navigation.current.openSource?.({ boardId: value.noteId, locator: { pdf: value } })
+      : pdfWorkspace.current?.open(value).catch(onError);
   useEffect(() => {
     if (!ready || !canvasRoot.current) return;
     return bindCanvasShortcuts(canvasRoot.current, {
@@ -1463,6 +1532,8 @@ const Board = React.forwardRef(function Board(
             {saveState === 'saved' && <Icon name="check" size={12} />}{' '}
             {saveState === 'error' ? (
               <button onClick={() => flush().catch(onError)}>{t('retry')}</button>
+            ) : pdfSaving ? (
+              'PDF 保存中…'
             ) : (
               t(saveState)
             )}
@@ -1471,6 +1542,11 @@ const Board = React.forwardRef(function Board(
         <Button icon="folder" onClick={onOrganize}>
           {t('organize')}
         </Button>
+        {boardModules.enabled('pdf') && (
+          <Button icon="file" onClick={() => pdfWorkspace.current?.manage()}>
+            PDF{board.pdfDocuments?.length ? ' · ' + board.pdfDocuments.length : ''}
+          </Button>
+        )}
         <Button disabled={!ready} onClick={() => learningWidgets.current?.openMenu()}>
           学习控件
         </Button>
@@ -1478,7 +1554,7 @@ const Board = React.forwardRef(function Board(
           快捷键
         </Button>
         <Button icon="file" title="导出 PDF（Option/Alt + Shift + P）" onClick={() => setPdf(true)}>
-          {t('pdf')}
+          {pdfReading ? '导出笔记 PDF' : t('pdf')}
         </Button>
         <Button primary icon="spark" onClick={() => setSummaryOpen((v) => !v)}>
           {t('summary')}
@@ -1499,9 +1575,34 @@ const Board = React.forwardRef(function Board(
           <div>{board.webNotes.text}</div>
         </details>
       )}
-      <div className="sb-board-body">
+      <div className={'sb-board-body' + (pdfReading ? ' sb-board-with-pdf' : '')}>
+        {boardModules.enabled('pdf') && (
+          <React.Suspense fallback={null}>
+            <PdfWorkspace
+              ref={pdfWorkspace}
+              noteId={board.id}
+              execute={(r) => api('execute', r)}
+              onExtract={extractPdf}
+              onVisibility={setPdfReading}
+              onBusy={setPdfSaving}
+              onError={onError}
+              initialFile={board._pdfImport}
+              initialFocus={
+                board._sourceFocus?.pdf
+                  ? { ...board._sourceFocus.pdf, token: board._sourceFocus.token }
+                  : null
+              }
+              onMeta={() =>
+                api('execute', { action: 'read', id: board.id })
+                  .then((value) => onUpdate({ pdfDocuments: value.pdfDocuments, updatedAt: value.updatedAt }))
+                  .catch(onError)
+              }
+            />
+          </React.Suspense>
+        )}
         <div className="sb-canvas-column">
           <CanvasTools key={canvasEpoch} apiRef={excali} rootRef={canvasRoot}>
+            {boardModules.enabled('pdf') && <PdfClipSource apiRef={excali} onOpen={openPdfSource} />}
             <CanvasComments
               key={board.id}
               apiRef={excali}
@@ -1510,6 +1611,7 @@ const Board = React.forwardRef(function Board(
               enabled={boardModules.settings?.features?.canvasComments}
               execute={(r) => api('execute', r)}
               flush={flush}
+              onSource={boardModules.enabled('pdf') ? openPdfSource : undefined}
             />
             <ImageText
               apiRef={excali}

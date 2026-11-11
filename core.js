@@ -130,7 +130,10 @@ export class LibraryStore {
       webImageCount: (webImages || []).filter((i) => !i.deletedAt).length,
       summaryCount: active.length,
       summaryText: active.at(-1)?.text?.slice(0, 300) || '',
+      pdfCount: b.pdfDocuments?.length || 0,
       textIndex: (
+        (b.pdfDocuments || []).map((document) => document.title).join(' ') +
+        ' ' +
         (b.webNotes?.text || '') +
         ' ' +
         scene.elements

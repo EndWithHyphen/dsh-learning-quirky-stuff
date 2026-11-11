@@ -11,6 +11,9 @@ export function sourceImageCatalog(elements) {
       width: image.width,
       height: image.height,
       note: image.customData?.studyboard?.imageNote || '',
+      ...(image.customData?.studyboard?.pdfSource
+        ? { pdfSource: image.customData.studyboard.pdfSource }
+        : {}),
       nearbyText: texts
         .filter((t) => Math.abs(t.y - image.y) < 250 && Math.abs(t.x - image.x) < Math.max(500, image.width))
         .map((t) => t.text)
@@ -34,7 +37,13 @@ export function originalSummaryElements(elements, summaries = []) {
       )
       .flatMap((e) => [e.id, e.containerId].filter(Boolean)),
   );
-  return elements.filter((e) => !e.isDeleted && !excluded.has(e.id) && !excluded.has(e.containerId));
+  return elements.filter(
+    (e) =>
+      !e.isDeleted &&
+      !excluded.has(e.id) &&
+      !excluded.has(e.containerId) &&
+      e.customData?.studyboard?.role !== 'pdf-source',
+  );
 }
 export function sourceAssets(study, board, elements) {
   const catalog = new Map(sourceImageCatalog(elements).map((x) => [x.id, x])),
@@ -59,6 +68,9 @@ export function sourceAssets(study, board, elements) {
       throw new Error('模型引用了不存在或不支持的原图：' + figure.sourceId);
     assets[figure.sourceId] = {
       elementId: image.id,
+      ...(image.customData?.studyboard?.pdfSource
+        ? { pdfSource: image.customData.studyboard.pdfSource }
+        : {}),
       dataURL: file.dataURL,
       width: image.width,
       height: image.height,

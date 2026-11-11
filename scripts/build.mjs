@@ -1,6 +1,6 @@
 import { build } from 'esbuild';
 import { format } from 'prettier';
-import { readFile, writeFile, mkdir, cp } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, cp, rm } from 'node:fs/promises';
 import { excalidrawChinese } from './excalidraw-locale.mjs';
 import { excalidrawCancellation } from './excalidraw-cancellation.mjs';
 import { VERSION } from '../shared/version.js';
@@ -10,6 +10,12 @@ for (const file of ['package.json', 'chrome-extension/manifest.json']) {
   if (metadata.version !== VERSION) throw new Error(file + ' 的版本与 shared/version.js 不一致');
 }
 const packageInfo = JSON.parse(await readFile('package.json', 'utf8'));
+await rm('pdf-assets', { recursive: true, force: true });
+await mkdir('pdf-assets', { recursive: true });
+await cp('node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs', 'pdf-assets/pdf.worker.min.mjs');
+for (const directory of ['cmaps', 'standard_fonts', 'wasm', 'iccs'])
+  await cp('node_modules/pdfjs-dist/' + directory, 'pdf-assets/' + directory, { recursive: true });
+await cp('node_modules/pdfjs-dist/LICENSE', 'pdf-assets/LICENSE');
 await writeFile(
   'shared/identity.js',
   await format(

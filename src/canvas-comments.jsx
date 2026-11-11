@@ -1,21 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { exportToCanvas, getCommonBounds } from '@excalidraw/excalidraw';
-import {
-  commentSelection,
-  commentSourceContent,
-  commentCanvasKey,
-  visibleCommentMessages,
-} from '../shared/canvas-comments.js';
+import { canvasCommentAdapter } from './comment-adapter.js';
+import { commentCanvasKey, visibleCommentMessages } from '../shared/canvas-comments.js';
 import CommentMarkdown from './comment-markdown.jsx';
 import { draftRead, draftPut } from './drafts.js';
 import css from './canvas-comments.css';
 
 const tick = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-const hash = async (text) =>
-  [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))]
-    .map((n) => n.toString(16).padStart(2, '0'))
-    .join('');
 const activeTask = (m) => m.task && ['queued', 'running'].includes(m.task.status);
 const stamp = (value) =>
   new Date(value).toLocaleString('zh-CN', {
@@ -33,7 +24,15 @@ export default function CanvasComments({
   execute,
   flush,
   enabled: configured,
+  sourceAdapter,
+  controlsRef,
+  onSource,
+  surfaceLabel = '画布',
 }) {
+  const adapter = useMemo(
+    () => sourceAdapter || canvasCommentAdapter(apiRef, rootRef),
+    [sourceAdapter, apiRef, rootRef],
+  );
   const canvasKey = commentCanvasKey(canvas),
     key = noteId + ':canvas-comments:' + canvasKey,
     services = useRef({ execute, flush, canvas }),
@@ -59,7 +58,7 @@ export default function CanvasComments({
     [busy, setBusy] = useState(false),
     [resolved, setResolved] = useState(false),
     [bounds, setBounds] = useState({ top: 12, height: 500 });
-  services.current = { execute, flush, canvas };
+  services.current = { execute, flush, canvas, onSource };
   threadsRef.current = threads;
   draftRef.current = draft;
   async function refresh() {
@@ -117,40 +116,26 @@ export default function CanvasComments({
     window.addEventListener('focus', load);
     const attach = () => {
       if (stopped) return;
-      const api = apiRef.current,
-        host = rootRef.current;
-      if (!api || !host) {
+      const host = rootRef.current;
+      if (!adapter.ready() || !host) {
         frame = requestAnimationFrame(attach);
         return;
       }
       setRoot(host);
       const update = () => {
         if (stopped) return;
-        const s = api.getAppState(),
-          elements = api.getSceneElements(),
-          rect = host.getBoundingClientRect(),
-          engine = host.querySelector('.excalidraw')?.getBoundingClientRect();
-        if (!engine) return;
-        const ids = elements.filter((e) => !e.isDeleted && s.selectedElementIds[e.id]).map((e) => e.id);
+        const snapshot = adapter.state(threadsRef.current);
+        if (!snapshot) return;
+        const ids = snapshot.selected,
+          next = snapshot.pins;
         setSelected((old) => (JSON.stringify(old) === JSON.stringify(ids) ? old : ids));
-        const next = threadsRef.current
-          .filter((t) => !t.resolvedAt)
-          .flatMap((t) => {
-            const objects = elements.filter((e) => !e.isDeleted && t.elementIds.includes(e.id));
-            if (!objects.length) return [];
-            const [, top, right] = getCommonBounds(objects),
-              x = engine.left - rect.left + (right + s.scrollX) * s.zoom.value + 5,
-              y = engine.top - rect.top + (top + s.scrollY) * s.zoom.value - 9;
-            if (x < 0 || x > rect.width - 24 || y < engine.top - rect.top || y > rect.height - 24) return [];
-            return [{ id: t.id, x, y }];
-          });
         // Stack threads attached to the same component so every marker remains clickable.
         for (let i = 0; i < next.length; i++)
           for (let j = 0; j < i; j++)
             if (Math.abs(next[i].x - next[j].x) < 25 && Math.abs(next[i].y - next[j].y) < 25)
               next[i].y = next[j].y + 29;
         setPins((old) => (JSON.stringify(old) === JSON.stringify(next) ? old : next));
-        const b = { top: Math.max(8, engine.top - rect.top + 8), height: Math.max(160, engine.height - 16) };
+        const b = snapshot.bounds;
         setBounds((old) => (old.top === b.top && old.height === b.height ? old : b));
       };
       const schedule = () => {
@@ -158,7 +143,7 @@ export default function CanvasComments({
         frame = requestAnimationFrame(update);
       };
       geometry.current = schedule;
-      off = api.onChange(schedule);
+      off = adapter.observe(schedule);
       resize = new ResizeObserver(schedule);
       resize.observe(host);
       schedule();
@@ -172,7 +157,7 @@ export default function CanvasComments({
       resize?.disconnect();
       window.removeEventListener('focus', load);
     };
-  }, [key]);
+  }, [key, adapter]);
   useEffect(() => {
     geometry.current();
   }, [threads]);
@@ -202,8 +187,15 @@ export default function CanvasComments({
       throw e;
     });
   }
-  function start() {
-    const ids = commentSelection(apiRef.current.getSceneElements(), selected).map((e) => e.id);
+  async function start() {
+    let ids;
+    try {
+      ids = await adapter.prepare(selected);
+    } catch (e) {
+      setError(e.message);
+      setOpen('list');
+      return;
+    }
     if (!ids.length) return;
     const signature = JSON.stringify([...ids].sort()),
       existing = threads.find((t) => !t.resolvedAt && JSON.stringify([...t.elementIds].sort()) === signature);
@@ -275,27 +267,7 @@ export default function CanvasComments({
       await tick();
       await services.current.flush();
       if (!mounted.current) return;
-      const api = apiRef.current,
-        selected = commentSelection(api.getSceneElements(), elementIds),
-        files = api.getFiles();
-      if (elementIds.some((id) => !selected.some((e) => e.id === id)))
-        throw new Error('所选组件已删除，请重新选择');
-      const sourceHash = await hash(commentSourceContent(selected, files));
-      let image;
-      if (selected.some((e) => e.type !== 'text')) {
-        const preview = await exportToCanvas({
-          elements: selected,
-          files,
-          appState: { ...api.getAppState(), exportBackground: true, exportWithDarkMode: false },
-          exportPadding: 24,
-          getDimensions: (w, h) => {
-            const scale = Math.min(1.5, 1800 / w, 1800 / h);
-            return { width: Math.ceil(w * scale), height: Math.ceil(h * scale), scale };
-          },
-        });
-        image = { mimeType: 'image/jpeg', data: preview.toDataURL('image/jpeg', 0.85).split(',')[1] };
-        if (image.data.length > 2_000_000) throw new Error('所选图片过大，请缩小范围再提问');
-      }
+      const { sourceHash, image } = await adapter.capture(elementIds);
       if (!mounted.current) return;
       // Reuse the request ID after a lost response, but a deliberate retry starts a new task.
       const pending =
@@ -351,16 +323,10 @@ export default function CanvasComments({
     }
   }
   function locate(t) {
-    const api = apiRef.current,
-      elements = api.getSceneElements().filter((e) => t.elementIds.includes(e.id));
-    if (elements.length) {
-      api.updateScene({
-        appState: { selectedElementIds: Object.fromEntries(elements.map((e) => [e.id, true])) },
-      });
-      api.scrollToContent(elements, { fitToViewport: true, maxZoom: 1, viewportZoomFactor: 0.6 });
-    }
+    adapter.locate(t);
     setOpen(t.id);
   }
+  if (controlsRef) controlsRef.current = { start, open: (id) => setOpen(id), list: () => setOpen('list') };
   const source = thread?.source;
   return (
     enabled && (
@@ -382,7 +348,7 @@ export default function CanvasComments({
             setOpen(open === 'list' ? null : 'list');
             setError('');
           }}
-          aria-label="画布备注列表"
+          aria-label={surfaceLabel + '备注列表'}
         >
           备注{threads.length ? ` ${threads.filter((t) => !t.resolvedAt).length}` : ''}
         </button>
@@ -406,7 +372,7 @@ export default function CanvasComments({
                   className="study-comment-panel"
                   ref={panelRef}
                   role="dialog"
-                  aria-label="画布提问与备注"
+                  aria-label={surfaceLabel + '提问与备注'}
                   style={{ top: bounds.top, maxHeight: bounds.height }}
                   onPointerDown={(e) => e.stopPropagation()}
                   onKeyDown={(e) => {
@@ -418,7 +384,13 @@ export default function CanvasComments({
                   }}
                 >
                   <header>
-                    <strong>{open === 'list' ? '画布备注' : '组件讨论'}</strong>
+                    <strong>
+                      {open === 'list'
+                        ? surfaceLabel + '备注'
+                        : surfaceLabel === 'PDF'
+                          ? '原文讨论'
+                          : '组件讨论'}
+                    </strong>
                     <div>
                       {open !== 'list' && (
                         <button type="button" onClick={() => setOpen('list')}>
@@ -498,7 +470,9 @@ export default function CanvasComments({
                     ) : (
                       <>
                         <div className="study-comment-context">
-                          <span>关联 {elementIds.length} 个组件</span>
+                          <span>
+                            关联 {elementIds.length} {surfaceLabel === 'PDF' ? '处原文' : '个组件'}
+                          </span>
                           {thread && (
                             <button type="button" onClick={() => locate(thread)}>
                               定位
@@ -515,6 +489,17 @@ export default function CanvasComments({
                         {source && (
                           <details className="study-comment-source">
                             <summary>最初来源</summary>
+                            {source.references?.map((ref, i) => (
+                              <button
+                                type="button"
+                                key={i}
+                                className="study-comment-source-link"
+                                disabled={!onSource}
+                                onClick={() => services.current.onSource?.(ref)}
+                              >
+                                {ref.title} · 第 {ref.page} 页 ↗
+                              </button>
+                            ))}
                             {source.image && <img src={source.image} alt="提问时的所选组件" />}
                             {source.text && <p>{source.text}</p>}
                           </details>
@@ -535,6 +520,17 @@ export default function CanvasComments({
                               <div className="study-comment-body">
                                 {m.role === 'assistant' ? <CommentMarkdown value={m.body} /> : m.body}
                               </div>
+                              {m.references?.map((ref, i) => (
+                                <button
+                                  type="button"
+                                  key={i}
+                                  className="study-comment-source-link"
+                                  disabled={!onSource}
+                                  onClick={() => services.current.onSource?.(ref)}
+                                >
+                                  {ref.title} · 第 {ref.page} 页 ↗
+                                </button>
+                              ))}
                               {m.model && (
                                 <small className="study-comment-muted">{m.model.name || m.model.id}</small>
                               )}

@@ -21,6 +21,7 @@ import { WeeklyModule } from './modules/weekly.js';
 import { InfographicsModule } from './modules/infographics.js';
 import { weeklyCardAvailable } from './weekly-review.js';
 import { CanvasCommentsModule } from './modules/canvas-comments.js';
+import { PdfModule } from './modules/pdf.js';
 
 /** Composition root: modules receive shared services and register their own actions. */
 export class LearningRuntime {
@@ -88,7 +89,11 @@ export class LearningRuntime {
       materialLibrary,
       route: (feature, route) => (route?.provider ? route : this.config.get().models[feature] || {}),
     };
+    this.pdf = new PdfModule(context);
+    context.pdf = this.pdf;
+    this.sources.pdf = this.pdf;
     this.modules = [
+      this.pdf,
       new TopicsModule(context),
       new ExploreModule(context),
       new SearchModule(context),
@@ -107,7 +112,8 @@ export class LearningRuntime {
       return {
         platform: process.platform,
         ocr: safeNative,
-        pdf: safeNative,
+        pdf: { available: true, reader: 'PDF.js' },
+        nativePdf: safeNative,
         codex: { available: !!(await findCodex()) },
       };
     });
@@ -128,6 +134,7 @@ export class LearningRuntime {
     await this.config.init();
     for (const repository of Object.values(this.repositories)) await repository.init();
     await this.tasks.init();
+    await this.pdf.init();
     if (this.store.purged.size) await this.purge([...this.store.purged]);
     return this;
   }
@@ -140,7 +147,10 @@ export class LearningRuntime {
   async updateConfig(request) {
     const settings = await this.config.update(request);
     for (const job of this.tasks.active())
-      if (!settings.features[job.feature] && ['queued', 'running'].includes(job.status))
+      if (
+        (!settings.features[job.feature] || (job.request?.canvasKind === 'pdf' && !settings.features.pdf)) &&
+        ['queued', 'running'].includes(job.status)
+      )
         await this.tasks.cancel(job.id, cancelled('功能已关闭，任务已停止', 'FEATURE_DISABLED'));
     return settings;
   }
@@ -256,8 +266,9 @@ export class LearningRuntime {
       for (const key of this.sources.recordCache.keys())
         if (key.startsWith(id + ':')) this.sources.recordCache.delete(key);
     }
+    await this.pdf.purge(ids);
   }
-  async backup() {
+  async backup(options = {}) {
     return {
       settings: this.config.get(),
       topics: await this.repositories.topics.list(),
@@ -269,6 +280,7 @@ export class LearningRuntime {
       infographics: await this.repositories.infographics.list(),
       infographicCanvases: await this.repositories['infographic-canvases'].list(),
       canvasComments: await this.repositories['canvas-comments'].list(),
+      pdf: await this.pdf.backup(options),
     };
   }
   async dispose() {

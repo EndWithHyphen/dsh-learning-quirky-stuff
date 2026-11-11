@@ -28,6 +28,7 @@ jobs:
       - run: npm run test:browser
       - run: npm run test:system-study-browser
       - run: npm run test:infographics-browser
+      - run: npm run test:pdf-browser
       - run: npm run test:diagram-dependencies
       - uses: actions/upload-artifact@v4
         if: failure()

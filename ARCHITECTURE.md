@@ -20,6 +20,9 @@
 | `server/sources.js` | 统一来源片段、内容哈希、原位定位信息、输入预算及引文核对 |
 | `server/reports.js` | 可追溯的整理结果及来源状态；失效来源不会继续当作有效依据显示 |
 | `server/material-library.js` | 共用材料存储和去重；探索与预览互不调用对方的功能模块 |
+| `server/modules/pdf.js`、`shared/pdf.js` | 不可变 PDF 原件、笔记关联、分块传输、页面索引、批注及来源引用 |
+| `src/pdf/` | PDF.js 阅读器、离线资源加载、坐标转换、持久批注队列、摘录排版和 ZIP 备份 |
+| `src/comment-adapter.js` | 通用讨论的画布适配器；PDF 使用同一讨论服务的原页适配器 |
 | `server/modules/` | 专题、探索、搜索、材料预览、理解反馈的业务规则、提示词与输出 Schema |
 | `server/system-study/`、`server/modules/system-study.js` | 系统学习的表达策划、来源及历史年代校验、报告与画布版本管理 |
 | `src/system-study-*` | AI 总结中的系统学习入口、语义网格排版、可编辑白板、来源检查与独立草稿 |
@@ -167,3 +170,16 @@ npm run check:format
 本机能力通过 `system.capabilities` 读取。macOS 识别程序由 CI 预编译；发布检查验证源码哈希、程序哈希与架构。开发时编译需明确开启，其他平台会给出不可用原因。
 
 `release:local` 分别输出 DSH tarball 与 Chrome ZIP。`third-party.mjs` 根据实际浏览器构建输入和运行依赖收集许可，补充许可按版本及哈希固定；升级依赖后需重新核对缺失项。生成代码、安装包、运行状态与个人发布配置在版本控制中排除。
+
+
+## PDF 阅读与笔记（4.5）
+
+`board.pdfDocuments` 保存当前关联，`pdfHistory` 保存移除的关联；所有笔记继续通过原分类、标签和回收站管理。原件按 SHA-256 去重存入 `modules/pdf-files`，批注和阅读位置按笔记存入 `pdf-notebooks`，页面文字及文字框按原件存入 `pdf-pages`。导入分块为 512 KiB、单文件上限 128 MiB，重试核对请求编号及分块内容。永久删除先移除笔记，再检查所有剩余引用（含回收站和历史关联），决定是否清理原件。
+
+`pdf.*` 动作检查 PDF 功能开关和笔记关联。阅读通过范围 RPC，PDF.js Worker、CMap、标准字体和 WASM 使用随包资源；浏览器无文件路径权限，不主动请求远程字体。PDF 坐标独立于缩放、设备像素比和旋转，批注保存 PDF 坐标，渲染时再转换。OCR 复用 NativeReader，结果经用户核对后以 `origin: ocr` 保留，不能覆盖原文索引。
+
+`PdfAnnotationSession` 先将操作写入 IndexedDB，再按版本提交；重试复用请求编号并核对内容，跨窗口版本冲突保留草稿。编辑表单在提交前也保存本机草稿。PDF 原文、OCR、手写和个人备注通过来源类型区分，摘录保存 `customData.studyboard.pdfSource`，总结图片、信息图和 SPO 来源继续携带该引用。
+
+PDF 选区讨论使用 `canvasComments` 的 `canvas.kind: pdf`，共享模型路由、幂等发送、任务取消与来源快照。原页适配器负责范围截图和标记定位。首版 Chrome 仅支持已有画布摘录，不开放 PDF RPC。
+
+整库备份传入 `separateFiles: true` 后仅获取清单，再通过 `pdf.backupRead` 分块打包；ZIP 内 `backup.json` + `pdfs/<hash>.pdf` 保存一次原件，避免单次 RPC 携带所有 PDF。该读取只用于 DSH 整库备份，不暴露给 Chrome 桥接。没有 PDF 时沿用 JSON 备份格式。

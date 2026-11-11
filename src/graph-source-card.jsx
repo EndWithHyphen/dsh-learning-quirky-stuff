@@ -31,6 +31,11 @@ export default function GraphSourceCard({ source, onSource, quote = true }) {
         <button onClick={() => onSource(source)}>
           {kind === 'AI 总结' ? '定位到这版总结' : '定位到画布文字'} ↗
         </button>
+        {source.pdfSource && (
+          <button onClick={() => onSource({ ...source, pdf: true })}>
+            打开 PDF 第 {source.pdfSource.page} 页 ↗
+          </button>
+        )}
         {url && (
           <a href={url} target="_blank" rel="noreferrer noopener">
             打开来源网页 ↗

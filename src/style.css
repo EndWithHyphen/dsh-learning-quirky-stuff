@@ -872,3 +872,8 @@
 .sb-app .sb-purge-confirm:hover {
   background: #962e29;
 }
+.sb-home-create-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}

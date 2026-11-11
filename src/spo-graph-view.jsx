@@ -453,6 +453,10 @@ export default function SpoGraphView({ api, onError, onOpen }) {
           }}
           onSource={(source) => {
             setDetail(null);
+            if (source.pdf && source.pdfSource) {
+              onOpen(source.pdfSource.noteId || source.boardId, undefined, { pdf: source.pdfSource });
+              return;
+            }
             onOpen(source.boardId, source.summaryId || undefined, {
               kind: source.kind === 'canvas' ? 'canvas' : 'summary',
               elementIds: source.elementId ? [source.elementId] : [],

@@ -141,9 +141,10 @@ export function FeatureSettings() {
         <section className="sb-capabilities">
           <h2>本机能力</h2>
           <p>
-            图片识别 / PDF 提取：
+            图片识别 / 扫描页 OCR：
             {learning.capabilities.ocr.available ? '已就绪' : learning.capabilities.ocr.reason}
           </p>
+          <p>PDF 阅读、选文与批注：已就绪</p>
           <p>
             Codex：
             {learning.capabilities.codex.available

@@ -114,6 +114,8 @@ export async function generateNotices() {
     '\n\n## Fonts\n\nFonts shipped with Excalidraw retain their embedded copyright and license notices.\n\n';
   for (const name of await readdir(join(root, 'licenses/fonts')))
     notice += '- [' + name + '](licenses/fonts/' + name + ')\n';
+  notice +=
+    '\n## PDF.js reading resources (DSH package)\n\nPDF.js uses Apache-2.0. Its offline CMaps, standard fonts and WASM codecs retain the upstream licenses distributed beside the resources under `pdf-assets/`. These resources are not included in the Chrome extension.\n';
   await writeFile(join(root, 'THIRD_PARTY_NOTICES.md'), notice);
   await rm(join(root, 'chrome-extension/licenses'), { recursive: true, force: true });
   await cp(join(root, 'licenses'), join(root, 'chrome-extension/licenses'), { recursive: true });

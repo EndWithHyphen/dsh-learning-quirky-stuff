@@ -788,6 +788,12 @@ export default function StudyPanel({
       key={f.id}
       figure={f}
       asset={summary?.assets?.[f.sourceId]}
+      onSource={(reference) =>
+        moduleUI.navigation.current.openSource?.({
+          boardId: reference.noteId || board.id,
+          locator: { pdf: reference },
+        })
+      }
       caption={
         f.caption && (
           <AnnotatedText {...annotationProps} text={f.caption} blockId={'figure:' + f.id + ':caption'} />

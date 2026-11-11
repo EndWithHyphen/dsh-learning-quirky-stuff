@@ -4,6 +4,11 @@ import { validatePurge } from '../trash.js';
 export async function executeStudyAction(app, request) {
   if (app.runtime.has(request?.action)) return app.runtime.execute(request);
   switch (request?.action) {
+    case 'duplicate': {
+      const result = await app.learning.dispatch(request);
+      await app.runtime.pdf.duplicate(request.id, result.id);
+      return app.store.read(result.id);
+    }
     case 'setSummaryDeleted': {
       const result = await app.store.setSummaryDeleted(request);
       await app.jobs.summaryChanged(result.summary);
@@ -34,7 +39,10 @@ export async function executeStudyAction(app, request) {
       return result;
     }
     case 'backup':
-      return { ...(await app.learning.dispatch(request)), modules: await app.runtime.backup() };
+      return {
+        ...(await app.learning.dispatch(request)),
+        modules: await app.runtime.backup({ separateFiles: request.separateFiles === true }),
+      };
     case 'summaryTask':
       return app.jobs.latest(request.id);
     case 'startGraphAi':

@@ -9,10 +9,10 @@
 命令行版可在独立的 `studyboard` profile 安装：
 
 ```sh
-dsh plugin --profile studyboard add ./dsh-learning-quirky-stuff-4.4.2.tgz
+dsh plugin --profile studyboard add ./dsh-learning-quirky-stuff-4.5.0.tgz
 ```
 
-也可通过 DSH 的添加插件入口选择安装来源。安装后启用学习画板，打开主面板。已公开的 npm 版本也支持按包名安装，例如 `dsh-learning-quirky-stuff@4.4.2`。
+也可通过 DSH 的添加插件入口选择安装来源。安装后启用学习画板，打开主面板。当前源码为 4.5.0 开发版，上面的路径指向本机构建产物。已公开的 npm 版本为 `dsh-learning-quirky-stuff@4.4.2`；以 npm 和 Releases 的实际记录为准。
 
 ## 从旧本机版本迁移
 
@@ -26,7 +26,7 @@ DSH CLI 示例（仅用于命令行 profile；桌面版请在插件页面移除�
 
 ```sh
 dsh plugin --profile studyboard remove @local/dsh-studyboard
-dsh plugin --profile studyboard add ./dsh-learning-quirky-stuff-4.4.2.tgz
+dsh plugin --profile studyboard add ./dsh-learning-quirky-stuff-4.5.0.tgz
 ```
 
 数据目录不在 npm 包或扩展目录内。卸载和升级只更换程序，不主动删除笔记。需要回滚时关闭 DSH，恢复之前保留的程序包和数据目录副本。不要将新版本产生的数据直接覆盖到无法识别它的旧版本上。
@@ -66,10 +66,10 @@ dsh plugin --profile studyboard add ./dsh-learning-quirky-stuff-4.4.2.tgz
 
 ## 平台与模型
 
-macOS 13+ 的 Apple Silicon 和 Intel 发布包包含本机识别程序。Windows/Linux 可使用通用界面、文字和模型功能，但未进行完整平台验收；本机 OCR/PDF 提取不可用时会在功能设置中说明，文字与字幕导入仍可用。
+macOS 13+ 的 Apple Silicon 和 Intel 发布包包含本机识别程序。Windows/Linux 可使用通用界面、文字和模型功能，但未进行完整平台验收；本机 OCR / 材料 URL 的 PDF 提取不可用时会在功能设置中说明。笔记中的 PDF.js 阅读、选文与摘录不依赖 macOS 识别组件。
 
 Codex 是可选的外部工具。自行从官方渠道安装并登录后，在模型选择器选择具体模型。插件从 PATH 和常见安装目录查找程序，也可设置 `STUDYBOARD_CODEX_BIN` 指定路径。CLI 版本必须支持 `exec`、结构化输出和隔离用户配置的参数；版本不兼容时保留原笔记并报告错误。
 
 ## 备份恢复
 
-应用内备份导出保留笔记和学习数据；目前没有一键导入完整备份的界面。最直接的完整恢复方式是在 DSH 关闭时恢复你自行保留的数据目录副本，再启动 DSH 检查笔记。只有 JSON 导出时，请先保留原文件，在独立数据目录中完成格式校验与恢复，避免手工覆盖现有文件。
+应用内备份导出保留笔记和学习数据；目前没有一键导入完整备份的界面。最直接的完整恢复方式是在 DSH 关闭时恢复你自行保留的数据目录副本，再启动 DSH 检查笔记。只有导出备份时，请先保留原文件，在独立数据目录中完成格式校验与恢复，避免手工覆盖现有文件。包含 PDF 的备份为 ZIP：`backup.json` 的 `modules.pdf.documents[].assetFile` 指向 `pdfs/<文件哈希>.pdf`，恢复时需校验文件哈希并保留笔记关联、批注和页面索引。请同时备份整个数据目录，以便直接恢复。

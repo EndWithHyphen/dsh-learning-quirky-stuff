@@ -28,6 +28,10 @@ export function commentSourceContent(elements, files = {}) {
         startBinding: e.startBinding?.elementId || null,
         endBinding: e.endBinding?.elementId || null,
         file: e.fileId ? files[e.fileId]?.dataURL || '' : '',
+        ...(e.userNote ? { userNote: e.userNote } : {}),
+        ...(e.pdfSource || e.customData?.studyboard?.pdfSource
+          ? { pdfSource: e.pdfSource || e.customData.studyboard.pdfSource }
+          : {}),
       })),
   );
 }
