@@ -45,6 +45,22 @@ Chrome 配套为 [Release 中的独立 ZIP](https://github.com/EndWithHyphen/dsh
 
 详细步骤：[安装与迁移](docs/install.md) · [使用说明](docs/user-guide.html) · [数据处理说明](docs/privacy.md)
 
+## 在 DSH 中整理与复习
+
+**AI 图文总结**：在笔记中点「AI总结」，选择模型生成。内容围绕主题组织，按需配上可编辑信息图；可以划线、追加备注、拓展主题，也可以进入「系统学习」继续研究。
+
+<img src="https://raw.githubusercontent.com/EndWithHyphen/dsh-learning-quirky-stuff/main/docs/images/dsh-summary.png" alt="DSH AI 总结：主题主线、要点与可编辑信息图" width="1000">
+
+**知识图谱与来源**：从左侧进入「知识图谱」，选择模型整理笔记中的实体和关系。按主干与分支阅读，点击关系查看「SPO来源」，回到原笔记核对。图谱保留材料观点的归属与依据。
+
+<img src="https://raw.githubusercontent.com/EndWithHyphen/dsh-learning-quirky-stuff/main/docs/images/dsh-graph.png" alt="DSH 知识图谱：围绕主题组织实体与 SPO 关系，并保留来源" width="1000">
+
+**主动回忆与间隔复习**：在总结的自测区加入复习，再从「今日复习」进入。先写下自己的回答，再揭晓答案、核对要点，根据本次表现安排下一次复习；不需要的卡片可设为「不再出现」。
+
+<img src="https://raw.githubusercontent.com/EndWithHyphen/dsh-learning-quirky-stuff/main/docs/images/dsh-review.png" alt="DSH 今日复习：独立作答、参考答案与下一次复习安排" width="1000">
+
+上面三张截图使用同一份合成演示材料，展示实际插件界面，不包含个人笔记。分类、标签和各项学习模块可按自己的习惯配置；系统学习、专题工作台与周报的完整操作见[使用说明](docs/user-guide.html)。
+
 ## Chrome 扩展：边看边记
 
 连接后，在文章或视频页按 **⌘⇧Y**（Windows / Linux：**Ctrl⇧Y**）打开笔记侧栏。每个标签页各自绑定一篇笔记，自动保存网页链接；切换标签页可继续记录对应内容。
