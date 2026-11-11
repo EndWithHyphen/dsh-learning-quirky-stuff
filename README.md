@@ -23,7 +23,6 @@ Studyboard is a local learning workspace for DeepSeek Harness: handwritten notes
 
 4.4.2 修复组件提问、自动换行、回答 Markdown 和重试状态，并支持删除备注草稿。
 
-4.4.2 的 [GitHub 安装包](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases/tag/v4.4.2)已发布；npm 发布仍在等待身份验证，npm 和插件索引当前提供 4.3.1。
 
 桌面版通过 DSH「插件」页面添加 npm 包 `dsh-learning-quirky-stuff@4.4.2`。离线安装可从 [Releases](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases) 下载 `.tgz`，解压后选择 `package` 目录。`desktop` profile 由 Electron 应用管理，CLI 不允许直接修改。
 

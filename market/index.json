@@ -34,8 +34,8 @@
       "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiM1MjdiNjkiLz48cGF0aCBkPSJNMTggMTZoMjh2MzRIMTh6IiBmaWxsPSIjZmZmIi8+PHBhdGggZD0ibTI0IDM0IDgtMTEgOCAxMU0yNyAzMGgxME0yNCA0MWgxNiIgc3Ryb2tlPSIjNTI3YjY5IiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPgo=",
       "versions": [
         {
-          "version": "4.3.1",
-          "publishTimestamp": 1794335362,
+          "version": "4.4.2",
+          "publishTimestamp": 1794379313,
           "source": {
             "type": "npm",
             "registry": "https://registry.npmjs.org/"
