@@ -9,7 +9,7 @@ import { LearningStore } from '../learning.js';
 import { LearningRuntime } from '../server/runtime.js';
 import { digest } from '../server/lib/values.js';
 import { commentSelection, commentSourceContent } from '../shared/canvas-comments.js';
-import { plainCanvasText, wrapCanvasText } from '../src/canvas-text-layout.js';
+import { canvasContentCount, plainCanvasText, wrapCanvasText } from '../src/canvas-text-layout.js';
 import { studyFixture } from './fixture.mjs';
 import { infographicFixture } from './infographic-fixture.mjs';
 import { parseStudy } from '../study-schema.js';
@@ -207,6 +207,30 @@ test('长文字换行保留原文与段落、避开邻近组件，并排除已�
   assert.equal(plainCanvasText({ ...e, containerId: 'box' }), false);
   assert.equal(plainCanvasText({ ...e, customData: { studyboard: { widgetId: 'card' } } }), false);
   assert.equal(plainCanvasText({ ...e, groupIds: ['group'] }), false);
+});
+test('一张知识卡按一个内容块计数，内部元素不会阻止旧长文字自动换行', () => {
+  const card = Array.from({ length: 11 }, (_, i) => ({
+    id: 'part-' + i,
+    type: 'text',
+    groupIds: ['card-group'],
+    customData: { studyboard: { widgetId: 'card' } },
+  }));
+  assert.equal(
+    canvasContentCount([...card, { id: 'photo', type: 'image' }, { id: 'long', type: 'text' }]),
+    3,
+  );
+  assert.equal(canvasContentCount([...card, { id: 'deleted', type: 'text', isDeleted: true }]), 1);
+  assert.equal(
+    canvasContentCount([
+      { id: 'frame', type: 'frame' },
+      { id: 'inside', type: 'text', frameId: 'frame' },
+    ]),
+    1,
+  );
+  assert.equal(
+    canvasContentCount(Array.from({ length: 13 }, (_, i) => ({ id: String(i), type: 'text' }))),
+    13,
+  );
 });
 test('系统学习和信息图使用各自已保存场景，删除父结果后拒绝新的讨论', async (t) => {
   const { runtime, store, note, request } = await fixture(t),

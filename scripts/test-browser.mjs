@@ -357,6 +357,105 @@ try {
     const recognized = await runtime.native.read(Buffer.from(dataURL.split(',')[1], 'base64'));
     assert.ok(recognized.lines.some((line) => line.text.includes('回忆')));
   }
+  // A single knowledge card has many native elements; it must still count as one content block.
+  const templates = (await store.read(note.id)).scene.elements,
+    textTemplate = templates.find((e) => e.type === 'text'),
+    boxTemplate = templates.find((e) => e.type === 'rectangle'),
+    oldText = '阅读材料时先明确问题，再核对证据与适用条件。'.repeat(16),
+    oldNote = await store.create({ title: '旧笔记长文字自动整理', source: { url: origin + '/article' } });
+  await store.save({
+    id: oldNote.id,
+    baseRevision: 0,
+    scene: {
+      appState: {},
+      files: {},
+      elements: [
+        ...Array.from({ length: 11 }, (_, i) => ({
+          ...textTemplate,
+          id: 'old-card-' + i,
+          x: 40,
+          y: 30 + i * 26,
+          width: 250,
+          height: 20,
+          fontSize: 16,
+          text: '卡片中的内容 ' + (i + 1),
+          originalText: '卡片中的内容 ' + (i + 1),
+          groupIds: ['old-card-group'],
+          containerId: null,
+          autoResize: true,
+          isDeleted: false,
+          index: null,
+          customData: { studyboard: { widgetId: 'old-card' } },
+          version: 1,
+          versionNonce: 100 + i,
+        })),
+        {
+          ...boxTemplate,
+          id: 'old-picture-placeholder',
+          x: 400,
+          y: 30,
+          width: 200,
+          height: 300,
+          groupIds: [],
+          boundElements: [],
+          customData: {},
+          isDeleted: false,
+          index: null,
+          version: 1,
+          versionNonce: 201,
+        },
+        {
+          ...textTemplate,
+          id: 'old-long-text',
+          x: 40,
+          y: 400,
+          width: 6100,
+          height: 23,
+          fontSize: 20,
+          lineHeight: 1.15,
+          text: oldText,
+          originalText: oldText,
+          groupIds: [],
+          containerId: null,
+          customData: {},
+          autoResize: true,
+          isDeleted: false,
+          index: null,
+          version: 1,
+          versionNonce: 202,
+        },
+      ],
+    },
+  });
+  await panel.close();
+  await options.evaluate((context) => chrome.runtime.sendMessage({ action: 'bind-tab-note', context }), {
+    ...context,
+    id: oldNote.id,
+    title: oldNote.title,
+  });
+  panel = await browser.newPage();
+  panel.on('pageerror', (e) => errors.push(e.message));
+  await panel.goto('chrome-extension://' + id + '/sidepanel.html?tabId=' + tab.id);
+  await panel.waitForFunction(() =>
+    window.__qaCanvas
+      ?.getSceneElements()
+      .find((e) => e.id === 'old-long-text')
+      ?.text.includes('\n'),
+  );
+  await panel.waitForFunction(() => window.__qaCanvas.getAppState().zoom.value > 0.12);
+  assert.equal(
+    await panel.evaluate(
+      () => window.__qaCanvas.getSceneElements().find((e) => e.id === 'old-long-text').width,
+    ),
+    640,
+  );
+  await panel.getByRole('button', { name: '保存', exact: true }).first().click();
+  for (let i = 0; i < 100; i++) {
+    const persisted = (await store.read(oldNote.id)).scene.elements.find((e) => e.id === 'old-long-text');
+    if (persisted?.autoResize === false && persisted.text.includes('\n')) break;
+    if (i === 99) throw new Error('Automatic opening layout did not persist');
+    await panel.waitForTimeout(50);
+  }
   await mkdir('dist/qa', { recursive: true });
   await panel.screenshot({ path: 'dist/qa/browser-smoke.png' });
   await dsh.getByRole('button', { name: '断开此连接', exact: true }).click();
@@ -372,6 +471,7 @@ try {
       toolbarOutsideCanvas: true,
       libraryAligned: true,
       longTextWrapPersists: true,
+      existingLongTextWithGroupedCardWrapsOnOpen: true,
       componentComments: true,
       commentAnchorFollowsMove: true,
     }),

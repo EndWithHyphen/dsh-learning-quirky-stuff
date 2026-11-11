@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { newElementWith, CaptureUpdateAction, FONT_FAMILY } from '@excalidraw/excalidraw';
-import { longCanvasText, wrapCanvasText } from './canvas-text-layout.js';
+import { canvasContentCount, longCanvasText, wrapCanvasText } from './canvas-text-layout.js';
 
 // Track text content rather than versions: moving, saving and undoing a layout do not reflow it.
 export default function CanvasTextWrap({ apiRef }) {
@@ -27,10 +27,12 @@ export default function CanvasTextWrap({ apiRef }) {
           elements = api.getSceneElementsIncludingDeleted();
         if (!state.width || state.editingTextElement || state.resizingElement || state.draggingElement)
           return;
+        if (!elements.some((e) => !e.isDeleted)) return;
         const selected = elements.filter((e) => state.selectedElementIds[e.id] && !e.isDeleted),
           candidates = (selected.length ? selected : elements).filter((e) => longCanvasText(e, state.width));
         setAvailable(candidates.length > 0);
-        const sparse = elements.filter((e) => !e.isDeleted).length <= 12;
+        const sparse = canvasContentCount(elements) <= 12,
+          opening = initial;
         const wanted = new Set(
           manual
             ? candidates.map((e) => e.id)
@@ -68,10 +70,10 @@ export default function CanvasTextWrap({ apiRef }) {
           applying = true;
           api.updateScene({ elements: next, captureUpdate: CaptureUpdateAction.IMMEDIATELY });
           applying = false;
-          if (manual)
+          if (manual || opening)
             api.scrollToContent(
-              next.filter((e) => wanted.has(e.id)),
-              { fitToViewport: true, maxZoom: 1 },
+              next.filter((e) => !e.isDeleted && (!manual || wanted.has(e.id))),
+              { fitToViewport: true, maxZoom: 1, viewportZoomFactor: 0.85 },
             );
           api.setToast({ message: `已将 ${count} 段长文字换行，可撤销或拖动边框调整宽度` });
         }

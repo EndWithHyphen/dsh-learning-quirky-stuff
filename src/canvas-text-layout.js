@@ -1,5 +1,24 @@
 import { wrapLearningText, findLearningSpace } from './learning-layout.js';
 
+export function canvasContentCount(elements) {
+  return new Set(
+    elements
+      .filter((e) => !e.isDeleted)
+      .map((e) => {
+        const widget = e.customData?.studyboard?.widgetId;
+        return e.frameId
+          ? 'frame:' + e.frameId
+          : e.type === 'frame'
+            ? 'frame:' + e.id
+            : widget
+              ? 'widget:' + widget
+              : e.groupIds?.length
+                ? 'group:' + e.groupIds.at(-1)
+                : 'element:' + e.id;
+      }),
+  ).size;
+}
+
 export function plainCanvasText(e) {
   return (
     e.type === 'text' &&

@@ -46,8 +46,7 @@ export function codexArgs(
     '--json',
     '--cd',
     dir,
-    '--output-schema',
-    schemaFile,
+    ...(schemaFile ? ['--output-schema', schemaFile] : []),
     '--output-last-message',
     outputFile,
     '-c',
@@ -105,10 +104,10 @@ export async function runCodex({
   onMetadata({ model, reasoningEffort: reasoningEffort || 'default' });
   const dir = await mkdtemp(join(tmpdir(), 'studyboard-codex-'));
   try {
-    const schemaFile = join(dir, 'schema.json'),
+    const schemaFile = schema == null ? null : join(dir, 'schema.json'),
       outputFile = join(dir, 'result.json'),
       imagePaths = [];
-    await writeFile(schemaFile, JSON.stringify(schema), { mode: 0o600 });
+    if (schemaFile) await writeFile(schemaFile, JSON.stringify(schema), { mode: 0o600 });
     for (let i = 0; i < images.length; i++) {
       const p = join(dir, `board-${i}.${images[i].mimeType === 'image/png' ? 'png' : 'jpg'}`);
       await writeFile(p, Buffer.from(images[i].data, 'base64'), { mode: 0o600 });

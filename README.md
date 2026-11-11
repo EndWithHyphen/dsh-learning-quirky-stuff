@@ -19,16 +19,16 @@ Studyboard is a local learning workspace for DeepSeek Harness: handwritten notes
 
 ## 安装
 
-当前版本 **4.4.0** 适配 DSH **0.2.2-rc.1**。macOS 13+ 为完整功能的首批验证平台；发布包附带 Apple Silicon / Intel 本机识别程序。Linux、Windows 的通用功能可运行，但尚未完成完整平台验收，图片识别与本机 PDF 提取会明确提示不支持。
+当前版本 **4.4.1** 适配 DSH **0.2.2-rc.1**。macOS 13+ 为完整功能的首批验证平台；发布包附带 Apple Silicon / Intel 本机识别程序。Linux、Windows 的通用功能可运行，但尚未完成完整平台验收，图片识别与本机 PDF 提取会明确提示不支持。
 
-4.4.0 安装包已提供在 [GitHub Release](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases/tag/v4.4.0)。npm 更新正在等待发布身份验证；npm 和插件索引当前提供 4.3.1。
+4.4.1 修复画布提问的 Codex 调用错误与旧笔记的自动换行。新版正在发布，npm 和插件索引当前提供 4.3.1；安装包进度见 [Releases](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases)。
 
-桌面版通过 DSH「插件」页面添加 npm 包 `dsh-learning-quirky-stuff@4.4.0`。离线安装可从 [Releases](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases) 下载 `.tgz`，解压后选择 `package` 目录。`desktop` profile 由 Electron 应用管理，CLI 不允许直接修改。
+桌面版通过 DSH「插件」页面添加 npm 包 `dsh-learning-quirky-stuff@4.4.1`。离线安装可从 [Releases](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases) 下载 `.tgz`，解压后选择 `package` 目录。`desktop` profile 由 Electron 应用管理，CLI 不允许直接修改。
 
 命令行版使用独立 profile 安装：
 
 ```sh
-dsh plugin --profile studyboard add dsh-learning-quirky-stuff@4.4.0
+dsh plugin --profile studyboard add dsh-learning-quirky-stuff@4.4.1
 ```
 
 在 DSH 中启用「自定义插件市场」，打开「插件 → 发现 → 添加索引源」，可使用本项目的发布索引：
