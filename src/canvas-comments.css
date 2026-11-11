@@ -280,3 +280,91 @@
   font-size: 11px;
   color: #6e7e73;
 }
+.study-comment-markdown {
+  white-space: normal;
+  line-height: 1.7;
+}
+.study-comment-markdown > :first-child {
+  margin-top: 0;
+}
+.study-comment-markdown > :last-child {
+  margin-bottom: 0;
+}
+.study-comment-markdown p {
+  margin: 0 0 12px;
+}
+.study-comment-markdown h3,
+.study-comment-markdown h4,
+.study-comment-markdown h5,
+.study-comment-markdown h6 {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 16px 0 7px;
+}
+.study-comment-markdown ul,
+.study-comment-markdown ol {
+  margin: 8px 0 12px;
+  padding-left: 22px;
+}
+.study-comment-markdown li {
+  margin: 4px 0;
+}
+.study-comment-markdown li > p {
+  margin: 4px 0;
+}
+.study-comment-markdown blockquote {
+  margin: 10px 0;
+  padding: 3px 0 3px 10px;
+  border-left: 3px solid #bacabd;
+  color: #5e7263;
+}
+.study-comment-markdown blockquote p {
+  margin: 0;
+}
+.study-comment-markdown code {
+  font:
+    12px/1.6 ui-monospace,
+    monospace;
+  background: #e6ede5;
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+.study-comment-markdown pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 6px;
+  background: #e6ede5;
+}
+.study-comment-markdown pre code {
+  padding: 0;
+  background: transparent;
+}
+.study-comment-markdown a {
+  color: #3d6550;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+.study-comment-markdown hr {
+  border: 0;
+  border-top: 1px solid #cfdbd0;
+  margin: 14px 0;
+}
+.study-comment-table {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 10px 0;
+}
+.study-comment-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.study-comment-table th,
+.study-comment-table td {
+  padding: 5px 7px;
+  border: 1px solid #cfdbd0;
+  text-align: left;
+}

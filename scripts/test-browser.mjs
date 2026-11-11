@@ -18,13 +18,16 @@ await cp('chrome-extension', extension, {
   recursive: true,
   filter: (src) => !/(?:connection\.json(?:\.bak)?|\.log)$/.test(src),
 });
+let retryTestCalls = 0;
 const store = await new LibraryStore(join(temp, 'data')).init(),
   learning = await new LearningStore(store).init(),
   runtime = await new LearningRuntime({ llm: { listProviders: () => [] } }, store, learning, {
     gateway: {
-      async text() {
+      async text(options) {
+        if (options.prompt.includes('用户问题：重试功能验证问题') && retryTestCalls++ === 0)
+          throw new Error('模拟首次调用失败');
         return {
-          text: '先独立回忆，再用证据核对遗漏。',
+          text: '**先独立回忆**，再用证据核对遗漏。',
           model: { id: 'browser-fixture', provider: 'fixture', name: '浏览器测试模型' },
         };
       },
@@ -307,6 +310,16 @@ try {
     .locator('.study-comment-message.assistant')
     .getByText('先独立回忆，再用证据核对遗漏。', { exact: true })
     .waitFor();
+  assert.equal(await panel.locator('.study-comment-markdown strong').textContent(), '先独立回忆');
+  await panel.getByRole('textbox', { name: '提问或备注', exact: true }).fill('重试功能验证问题');
+  await panel.getByRole('button', { name: '问 AI', exact: true }).click();
+  await panel.locator('.study-comment-notice').filter({ hasText: '模拟首次调用失败' }).waitFor();
+  await panel.getByRole('button', { name: '重新提问', exact: true }).click();
+  await panel
+    .locator('.study-comment-notice')
+    .filter({ hasText: '模拟首次调用失败' })
+    .waitFor({ state: 'hidden' });
+  assert.equal(await panel.locator('.study-comment-message.assistant').count(), 2);
   await panel.getByRole('button', { name: '关闭画布备注', exact: true }).click();
   const beforePin = await panel.locator('.study-comment-pin').boundingBox();
   assert.ok(beforePin);
@@ -330,7 +343,7 @@ try {
     .locator('.study-comment-list-item')
     .getByText('核对主张和证据之间的关系', { exact: true })
     .click();
-  await panel.locator('.study-comment-message.assistant').waitFor();
+  await panel.locator('.study-comment-message.assistant').first().waitFor();
   await panel.getByRole('button', { name: '标记已解决', exact: true }).click();
   await panel.getByRole('button', { name: '重新打开', exact: true }).waitFor();
   await panel.getByRole('button', { name: '重新打开', exact: true }).click();
@@ -496,6 +509,7 @@ try {
       componentComments: true,
       commentAnchorFollowsMove: true,
       commentDraftDeleteUndoPersists: true,
+      markdownAndSuccessfulRetry: true,
     }),
   );
 } catch (error) {

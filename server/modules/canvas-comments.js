@@ -93,6 +93,12 @@ export class CanvasCommentsModule {
       throw new Error('请选择 1 至 200 个画布组件');
     const existing = await this.comments.get(threadId, { optional: true });
     if (existing) this.assertThread(existing, board.id, canvas);
+    const retryOf = request.retryOf ? assertId(request.retryOf) : null;
+    if (
+      retryOf &&
+      (!ask || !existing?.messages.some((m) => m.id === retryOf && m.role === 'question' && m.body === body))
+    )
+      throw new Error('重新提问的来源不正确');
     if (existing?.resolvedAt) throw new Error('请先重新打开这条备注');
     const ids = existing?.elementIds || [...new Set(request.elementIds)],
       selected = commentSelection(scene.elements, ids);
@@ -101,7 +107,7 @@ export class CanvasCommentsModule {
       throw new Error('图片尚未保存完整');
     const sourceHash = digest(commentSourceContent(selected, scene.files)),
       repeated = existing?.messages.find((m) => m.id === requestId),
-      intentHash = digest({ body, ask, elementIds: ids });
+      intentHash = digest({ body, ask, elementIds: ids, ...(retryOf ? { retryOf } : {}) });
     if (repeated && repeated.intentHash !== intentHash) throw new Error('重复请求内容不一致');
     if (!repeated && sourceHash !== request.sourceHash) throw new Error('所选内容已变化，请重新提问');
     const visual = selected.some((e) => e.type !== 'text'),
@@ -160,6 +166,7 @@ export class CanvasCommentsModule {
               body,
               intentHash,
               sourceHash,
+              ...(retryOf ? { retryOf } : {}),
               createdAt: new Date().toISOString(),
               ...(ask ? { source } : {}),
             },

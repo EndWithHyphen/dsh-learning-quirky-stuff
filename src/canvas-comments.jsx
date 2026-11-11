@@ -1,7 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { exportToCanvas, getCommonBounds } from '@excalidraw/excalidraw';
-import { commentSelection, commentSourceContent, commentCanvasKey } from '../shared/canvas-comments.js';
+import {
+  commentSelection,
+  commentSourceContent,
+  commentCanvasKey,
+  visibleCommentMessages,
+} from '../shared/canvas-comments.js';
+import CommentMarkdown from './comment-markdown.jsx';
 import { draftRead, draftPut } from './drafts.js';
 import css from './canvas-comments.css';
 
@@ -256,7 +262,7 @@ export default function CanvasComments({
         ...draftRef.current,
         [open]: { ...form, id: open, elementIds, body, pending: null },
       }).catch(() => {});
-  async function send(ask, retryBody) {
+  async function send(ask, retryBody, retryOf) {
     if (sending.current) return;
     const body = (retryBody || form.body || '').trim();
     if (!body) return;
@@ -295,7 +301,7 @@ export default function CanvasComments({
       const pending =
         !retryBody && form.pending?.body === body && form.pending.ask === ask
           ? form.pending
-          : { requestId: crypto.randomUUID(), body, ask };
+          : { requestId: crypto.randomUUID(), body, ask, ...(retryOf ? { retryOf } : {}) };
       await saveDraft({
         ...draftRef.current,
         [id]: { ...(draftRef.current[id] || form), id, elementIds, pending },
@@ -311,6 +317,7 @@ export default function CanvasComments({
         sourceHash,
         body,
         ask,
+        ...(pending.retryOf ? { retryOf: pending.retryOf } : {}),
         image,
         route: provider ? { provider, model } : {},
       });
@@ -451,7 +458,7 @@ export default function CanvasComments({
                               <b>{t.messages[0]?.body.slice(0, 90) || '组件备注'}</b>
                               <small>
                                 {t.resolvedAt ? '已解决 · ' : ''}
-                                {t.messages.length} 条 · {stamp(t.createdAt)}
+                                {visibleCommentMessages(t.messages).length} 条 · {stamp(t.createdAt)}
                                 {t.sourceStatus === 'missing' ? ' · 组件已删除' : ''}
                               </small>
                             </button>
@@ -513,7 +520,7 @@ export default function CanvasComments({
                           </details>
                         )}
                         <div aria-live="polite" className="study-comment-messages">
-                          {(thread?.messages || []).map((m) => (
+                          {visibleCommentMessages(thread?.messages).map((m) => (
                             <article key={m.id} className={'study-comment-message ' + m.role}>
                               <div className="study-comment-byline">
                                 <b>
@@ -525,7 +532,9 @@ export default function CanvasComments({
                                 </b>
                                 <time>{stamp(m.createdAt)}</time>
                               </div>
-                              <div className="study-comment-body">{m.body}</div>
+                              <div className="study-comment-body">
+                                {m.role === 'assistant' ? <CommentMarkdown value={m.body} /> : m.body}
+                              </div>
                               {m.model && (
                                 <small className="study-comment-muted">{m.model.name || m.model.id}</small>
                               )}
@@ -559,7 +568,7 @@ export default function CanvasComments({
                                   <button
                                     type="button"
                                     disabled={busy || running || missing || !!thread.resolvedAt}
-                                    onClick={() => send(true, m.body)}
+                                    onClick={() => send(true, m.body, m.id)}
                                   >
                                     重新提问
                                   </button>

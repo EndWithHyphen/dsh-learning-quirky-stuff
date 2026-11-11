@@ -1,6 +1,6 @@
 {
   "name": "dsh-learning-quirky-stuff",
-  "version": "4.4.1",
+  "version": "4.4.2",
   "description": "学习画板：手写与截图笔记、AI 图文总结、系统学习、知识图谱、间隔复习和周报",
   "type": "module",
   "license": "MIT",
@@ -101,6 +101,7 @@
     "dagre-d3-es": "7.0.10",
     "esbuild": "^0.25.12",
     "jspdf": "4.2.1",
+    "marked": "16.4.2",
     "playwright": "1.56.1",
     "prettier": "3.6.2",
     "react": "18.3.1",
@@ -109,12 +110,12 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "4.1.0",
     "@deepseek-ai/dsh": ">=0.2.2-rc.1 <0.3.0",
+    "@deepseek-ai/dsh-attachment": "0.2.2-rc.1",
     "@deepseek-ai/dsh-home-paths": "0.2.2-rc.1",
-    "@deepseek-ai/dsh-tools": "0.2.2-rc.1",
-    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.1",
     "@deepseek-ai/dsh-llm": "0.2.2-rc.1",
     "@deepseek-ai/dsh-scope": "0.2.2-rc.1",
-    "@deepseek-ai/dsh-attachment": "0.2.2-rc.1"
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.1"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh": {

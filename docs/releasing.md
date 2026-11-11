@@ -40,7 +40,7 @@ npm run release:metadata -- --repository https://github.com/YOUR_ACCOUNT/YOUR_RE
 先确认 npm 账号拥有包名的发布权限，再手工发布已经验证的 tarball：
 
 ```sh
-npm publish ./dist/releases/dsh-learning-quirky-stuff-4.4.1.tgz --access public --registry=https://registry.npmjs.org/
+npm publish ./dist/releases/dsh-learning-quirky-stuff-4.4.2.tgz --access public --registry=https://registry.npmjs.org/
 ```
 
 DSH 索引使用已发布的准确 npm 版本，包含作者、版本、兼容范围和来源。可交给选定的社区索引收录，也可将生成的索引放到 HTTPS 静态站点，让用户在 DSH 发现页添加索引源。实际 npm 发布完成前，不要发布宣称该版本已可安装的索引。
