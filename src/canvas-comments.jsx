@@ -44,6 +44,8 @@ export default function CanvasComments({
     [pins, setPins] = useState([]),
     [open, setOpen] = useState(null),
     [draft, setDraft] = useState({}),
+    [discarded, setDiscarded] = useState(null),
+    [changingDraft, setChangingDraft] = useState(false),
     [ready, setReady] = useState(false),
     [models, setModels] = useState([]),
     [route, setRoute] = useState(''),
@@ -213,6 +215,36 @@ export default function CanvasComments({
     if (!pending) saveDraft({ ...draftRef.current, [id]: { id, elementIds: ids, body: '' } }).catch(() => {});
     setError('');
     setOpen(id);
+  }
+  async function discardDraft(id) {
+    const removed = draftRef.current[id];
+    if (!removed || changingDraft) return;
+    setChangingDraft(true);
+    const next = { ...draftRef.current };
+    delete next[id];
+    try {
+      await saveDraft(next);
+      setDiscarded({ id, value: removed });
+      setError('');
+    } catch {
+      const restored = { ...draftRef.current, [id]: removed };
+      draftRef.current = restored;
+      setDraft(restored);
+    } finally {
+      setChangingDraft(false);
+    }
+  }
+  async function restoreDraft() {
+    if (!discarded || changingDraft) return;
+    setChangingDraft(true);
+    try {
+      await saveDraft({ ...draftRef.current, [discarded.id]: discarded.value });
+      setDiscarded(null);
+      setError('');
+    } catch {
+    } finally {
+      setChangingDraft(false);
+    }
   }
   const thread = threads.find((t) => t.id === open),
     form = draft[open] || {},
@@ -427,16 +459,34 @@ export default function CanvasComments({
                         {Object.values(draft)
                           .filter((d) => d?.body && !threads.some((t) => t.id === d.id))
                           .map((d) => (
-                            <button
-                              type="button"
-                              className="study-comment-list-item"
-                              key={d.id}
-                              onClick={() => setOpen(d.id)}
-                            >
-                              <b>{d.body.slice(0, 90)}</b>
-                              <small>未发送草稿</small>
-                            </button>
+                            <div className="study-comment-draft-row" key={d.id}>
+                              <button
+                                type="button"
+                                className="study-comment-list-item"
+                                onClick={() => setOpen(d.id)}
+                              >
+                                <b>{d.body.slice(0, 90)}</b>
+                                <small>未发送草稿</small>
+                              </button>
+                              <button
+                                type="button"
+                                className="study-comment-delete-draft"
+                                aria-label={'删除草稿：' + d.body.slice(0, 30)}
+                                disabled={busy || changingDraft}
+                                onClick={() => discardDraft(d.id)}
+                              >
+                                删除草稿
+                              </button>
+                            </div>
                           ))}
+                        {discarded && (
+                          <div className="study-comment-draft-undo" role="status">
+                            <span>草稿已删除</span>
+                            <button type="button" disabled={changingDraft} onClick={restoreDraft}>
+                              撤销删除
+                            </button>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <>

@@ -341,6 +341,27 @@ try {
   await panel.screenshot({ path: join(temp, 'comments-narrow.png') });
   await panel.setViewportSize({ width: 1280, height: 800 });
   await panel.getByRole('button', { name: '关闭画布备注', exact: true }).click();
+  await panel.evaluate(() => {
+    const api = window.__qaCanvas,
+      target = api.getSceneElements().find((e) => e.type === 'rectangle');
+    api.updateScene({ appState: { selectedElementIds: { [target.id]: true } } });
+  });
+  await panel.getByRole('button', { name: '提问 / 备注', exact: true }).click();
+  await panel.getByRole('textbox', { name: '提问或备注', exact: true }).fill('待删除草稿');
+  await panel.getByRole('button', { name: '全部', exact: true }).click();
+  await panel.getByRole('button', { name: '删除草稿：待删除草稿', exact: true }).click();
+  await panel.getByRole('button', { name: '撤销删除', exact: true }).waitFor();
+  assert.equal(await panel.getByText('待删除草稿', { exact: true }).count(), 0);
+  await panel.getByRole('button', { name: '撤销删除', exact: true }).click();
+  await panel.getByText('待删除草稿', { exact: true }).waitFor();
+  await panel.getByRole('button', { name: '删除草稿：待删除草稿', exact: true }).click();
+  await panel.getByRole('button', { name: '撤销删除', exact: true }).waitFor();
+  await panel.reload();
+  await panel.waitForFunction(() => window.__qaCanvas);
+  await panel.getByRole('button', { name: '画布备注列表', exact: true }).click();
+  await panel.getByText('核对主张和证据之间的关系', { exact: true }).waitFor();
+  assert.equal(await panel.getByText('待删除草稿', { exact: true }).count(), 0);
+  await panel.getByRole('button', { name: '关闭画布备注', exact: true }).click();
   if (process.platform === 'darwin') {
     const dataURL = await panel.evaluate(() => {
       const canvas = document.createElement('canvas');
@@ -474,6 +495,7 @@ try {
       existingLongTextWithGroupedCardWrapsOnOpen: true,
       componentComments: true,
       commentAnchorFollowsMove: true,
+      commentDraftDeleteUndoPersists: true,
     }),
   );
 } catch (error) {
