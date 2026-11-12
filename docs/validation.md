@@ -24,3 +24,5 @@ npm audit --json --registry=https://registry.npmjs.org/
 
 
 PDF 回归样例由项目生成，包含双栏、可选中文、公式、矢量图表、旋转页、扫描页和密码文件。`scripts/test-pdf-browser.mjs` 使用实际 PDF.js 及 Excalidraw，验证导入、批注、文字 / 图像摘录、共用原件、提问来源、回页、搜索与表单草稿恢复；macOS 识别程序可用时执行真实扫描 OCR。问题回答使用固定测试模型，不验证外部模型的回答质量。`tests/pdf.test.mjs` 检查分块重试、版本冲突、来源引用、去重备份与删除生命周期。测试 PDF 的生成脚本是 `scripts/make-pdf-fixture.py`（开发工具：reportlab、Pillow），正常构建不需要 Python。
+
+PDF 横版回归还模拟 16:9 报告在视口高度临界处的加载、缩放与滚动条变化，测量加载提示出现时的页面位置，以及静置后的画布重绘次数，确保进度提示不会推移页面或触发持续重绘。

@@ -120,11 +120,20 @@
   color: #748074;
   margin-right: 5px;
 }
+.sb-pdf-viewport {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  overflow: hidden;
+}
 .sb-pdf-scroll {
   flex: 1;
   min-height: 0;
   min-width: 0;
   overflow: auto;
+  scrollbar-gutter: stable;
   position: relative;
   padding: 16px;
   overscroll-behavior: contain;
@@ -210,6 +219,20 @@
   color: #748074;
   padding: 16px;
   margin: 0;
+}
+.sb-pdf-render-status {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 4px 10px;
+  border: 1px solid #e1e5e1;
+  border-radius: 6px;
+  background: #fffffff0;
+  box-shadow: 0 2px 8px #23352112;
+  white-space: nowrap;
+  pointer-events: none;
 }
 .sb-pdf-status {
   display: flex;

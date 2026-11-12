@@ -287,7 +287,8 @@ const PdfReader = React.forwardRef(function PdfReader(
       if (!disposed) setError(e.message);
     });
     const observer = new ResizeObserver(() => {
-      if (scroller.current) setWidth(scroller.current.clientWidth);
+      const nextWidth = scroller.current?.clientWidth;
+      if (nextWidth > 0) setWidth((previous) => (previous === nextWidth ? previous : nextWidth));
       notify();
     });
     if (scroller.current) observer.observe(scroller.current);
@@ -325,7 +326,7 @@ const PdfReader = React.forwardRef(function PdfReader(
           zoom === 'fit'
             ? Math.max(
                 0.1,
-                (width - 32) /
+                (width - 33) /
                   data.page.getViewport({ scale: 1, rotation: (data.page.rotate + rotation) % 360 }).width,
               )
             : Number(zoom),
@@ -805,113 +806,118 @@ const PdfReader = React.forwardRef(function PdfReader(
           </button>
         </div>
       )}
-      <div
-        className="sb-pdf-scroll"
-        ref={scroller}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            gesture.current = null;
-            setDraftStroke(null);
-            setMode('text');
-            setSelection(null);
-          }
-          if (e.target !== scroller.current || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-          if (e.key === 'PageDown' && page < count) {
-            e.preventDefault();
-            setSelection(null);
-            setPage((p) => p + 1);
-          }
-          if (e.key === 'PageUp' && page > 1) {
-            e.preventDefault();
-            setSelection(null);
-            setPage((p) => p - 1);
-          }
-        }}
-      >
-        {!loaded && !password && !error && <p className="sb-pdf-loading">正在打开 PDF…</p>}
-        {rendering && <p className="sb-pdf-loading">正在显示第 {page} 页…</p>}
+      <div className="sb-pdf-viewport" aria-busy={!loaded || rendering}>
         <div
-          className="sb-pdf-page"
-          ref={pageBox}
-          style={{ width: size.width, height: size.height }}
-          data-page={page}
-          data-ready={!rendering && renderKey === [page, zoom, rotation, width].join(':')}
+          className="sb-pdf-scroll"
+          ref={scroller}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              gesture.current = null;
+              setDraftStroke(null);
+              setMode('text');
+              setSelection(null);
+            }
+            if (e.target !== scroller.current || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+            if (e.key === 'PageDown' && page < count) {
+              e.preventDefault();
+              setSelection(null);
+              setPage((p) => p + 1);
+            }
+            if (e.key === 'PageUp' && page > 1) {
+              e.preventDefault();
+              setSelection(null);
+              setPage((p) => p - 1);
+            }
+          }}
         >
-          <canvas
-            ref={canvas}
-            style={{ width: size.width, height: size.height }}
-            aria-label={'PDF 第 ' + page + ' 页'}
-          />
-          <svg className="sb-pdf-marks" width={size.width} height={size.height} aria-hidden="true">
-            {viewport.current &&
-              visible.map((a) =>
-                a.kind === 'ink' ? (
-                  <path
-                    key={a.id}
-                    d={path(a.points)}
-                    fill="none"
-                    stroke="#d6503c"
-                    strokeWidth={2 * viewport.current.scale}
-                    strokeLinecap="round"
-                  />
-                ) : a.kind === 'highlight' ? (
-                  a.rects.map((r, i) => {
-                    const b = styleRect(r);
-                    return <rect key={a.id + i} {...b} fill="#ffd85a" opacity=".3" />;
-                  })
-                ) : null,
-              )}
-            {viewport.current &&
-              selection?.page === page &&
-              selection.rects?.map((r, i) => (
-                <rect
-                  key={'selection' + i}
-                  {...styleRect(r)}
-                  fill="#a9bbf2"
-                  fillOpacity=".22"
-                  stroke="#6c76c8"
-                  strokeWidth="1"
-                />
-              ))}
-            {viewport.current &&
-              draftStroke &&
-              (draftStroke.mode === 'ink' ? (
-                <path d={path(draftStroke.points)} fill="none" stroke="#d6503c" strokeWidth="2" />
-              ) : (
-                <rect
-                  {...styleRect([
-                    Math.min(draftStroke.start[0], draftStroke.end[0]),
-                    Math.min(draftStroke.start[1], draftStroke.end[1]),
-                    Math.max(draftStroke.start[0], draftStroke.end[0]),
-                    Math.max(draftStroke.start[1], draftStroke.end[1]),
-                  ])}
-                  fill="#9caafa33"
-                  stroke="#7d80c8"
-                />
-              ))}
-          </svg>
           <div
-            ref={textLayer}
-            className="textLayer"
-            onPointerUp={() => requestAnimationFrame(selectText)}
-            onKeyUp={selectText}
-          />
-          {mode !== 'text' && (
-            <div
-              className="sb-pdf-gesture"
-              role="application"
-              aria-label={mode === 'ink' ? 'PDF 手写批注' : 'PDF 框选区域'}
-              onPointerDown={down}
-              onPointerMove={move}
-              onPointerUp={up}
-              onPointerCancel={() => {
-                gesture.current = null;
-                setDraftStroke(null);
-              }}
+            className="sb-pdf-page"
+            ref={pageBox}
+            style={{ width: size.width, height: size.height }}
+            data-page={page}
+            data-ready={!rendering && renderKey === [page, zoom, rotation, width].join(':')}
+          >
+            <canvas
+              ref={canvas}
+              style={{ width: size.width, height: size.height }}
+              aria-label={'PDF 第 ' + page + ' 页'}
             />
-          )}
+            <svg className="sb-pdf-marks" width={size.width} height={size.height} aria-hidden="true">
+              {viewport.current &&
+                visible.map((a) =>
+                  a.kind === 'ink' ? (
+                    <path
+                      key={a.id}
+                      d={path(a.points)}
+                      fill="none"
+                      stroke="#d6503c"
+                      strokeWidth={2 * viewport.current.scale}
+                      strokeLinecap="round"
+                    />
+                  ) : a.kind === 'highlight' ? (
+                    a.rects.map((r, i) => {
+                      const b = styleRect(r);
+                      return <rect key={a.id + i} {...b} fill="#ffd85a" opacity=".3" />;
+                    })
+                  ) : null,
+                )}
+              {viewport.current &&
+                selection?.page === page &&
+                selection.rects?.map((r, i) => (
+                  <rect
+                    key={'selection' + i}
+                    {...styleRect(r)}
+                    fill="#a9bbf2"
+                    fillOpacity=".22"
+                    stroke="#6c76c8"
+                    strokeWidth="1"
+                  />
+                ))}
+              {viewport.current &&
+                draftStroke &&
+                (draftStroke.mode === 'ink' ? (
+                  <path d={path(draftStroke.points)} fill="none" stroke="#d6503c" strokeWidth="2" />
+                ) : (
+                  <rect
+                    {...styleRect([
+                      Math.min(draftStroke.start[0], draftStroke.end[0]),
+                      Math.min(draftStroke.start[1], draftStroke.end[1]),
+                      Math.max(draftStroke.start[0], draftStroke.end[0]),
+                      Math.max(draftStroke.start[1], draftStroke.end[1]),
+                    ])}
+                    fill="#9caafa33"
+                    stroke="#7d80c8"
+                  />
+                ))}
+            </svg>
+            <div
+              ref={textLayer}
+              className="textLayer"
+              onPointerUp={() => requestAnimationFrame(selectText)}
+              onKeyUp={selectText}
+            />
+            {mode !== 'text' && (
+              <div
+                className="sb-pdf-gesture"
+                role="application"
+                aria-label={mode === 'ink' ? 'PDF 手写批注' : 'PDF 框选区域'}
+                onPointerDown={down}
+                onPointerMove={move}
+                onPointerUp={up}
+                onPointerCancel={() => {
+                  gesture.current = null;
+                  setDraftStroke(null);
+                }}
+              />
+            )}
+          </div>
         </div>
+        {!password && !error && (!loaded || rendering) && (
+          <p className="sb-pdf-loading sb-pdf-render-status" role="status">
+            {loaded ? `正在显示第 ${page} 页…` : '正在打开 PDF…'}
+          </p>
+        )}
       </div>
       <footer className="sb-pdf-status">
         <span>

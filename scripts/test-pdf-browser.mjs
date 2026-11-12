@@ -10,6 +10,7 @@ import { LearningStore } from '../learning.js';
 import { LearningRuntime } from '../server/runtime.js';
 import { executeStudyAction } from '../server/service-actions.js';
 import { excalidrawChinese } from './excalidraw-locale.mjs';
+import { assertPdfLayoutStable } from '../tests/browser/pdf-layout.mjs';
 import { excalidrawCancellation } from './excalidraw-cancellation.mjs';
 const root = resolve('.'),
   temp = await mkdtemp(join(tmpdir(), 'study-pdf-ui-')),
@@ -324,10 +325,12 @@ try {
   await page.getByRole('textbox', { name: 'PDF 密码' }).fill('fixture-password');
   await page.locator('.sb-pdf-password').getByRole('button', { name: '打开', exact: true }).click();
   await page.locator('.textLayer span').filter({ hasText: 'Protected PDF fixture' }).waitFor();
+  const idleLayout = await assertPdfLayoutStable(page);
   assert.deepEqual(errors, []);
   console.log(
     JSON.stringify({
       pdf: true,
+      idleLayout,
       import: true,
       sharedOriginal: true,
       selection: true,
