@@ -1,4 +1,5 @@
 const tails = new Map();
+const openedPanelTabs = new Set();
 export const tabNoteKey = (id) => 'reading-tab:' + id;
 export async function readTabNote(id) {
   return (await chrome.storage.session.get(tabNoteKey(id)))[tabNoteKey(id)] || null;
@@ -27,10 +28,26 @@ export function updateTabNote(id, change) {
     .catch(() => {});
   return task;
 }
-export function configureTab(id) {
-  return chrome.sidePanel.setOptions({ tabId: id, path: 'sidepanel.html?tabId=' + id, enabled: true });
+export function configureTab(id, enabled = false) {
+  if (enabled) openedPanelTabs.add(id);
+  return chrome.sidePanel.setOptions({
+    tabId: id,
+    path: 'sidepanel.html?tabId=' + id,
+    enabled: openedPanelTabs.has(id),
+  });
+}
+export function openTabPanel(id) {
+  // Dispatch these Chrome API calls together, before any storage/network await,
+  // so open() still runs in the action/keyboard user gesture.
+  const configured = configureTab(id, true);
+  const opened = chrome.sidePanel.open({ tabId: id });
+  return Promise.all([configured, opened]).then(() => undefined);
+}
+export function forgetTabPanel(id) {
+  openedPanelTabs.delete(id);
 }
 export async function configureExistingTabs() {
+  await chrome.sidePanel.setOptions({ enabled: false });
   const tabs = await chrome.tabs.query({});
   await Promise.allSettled(tabs.map((tab) => configureTab(tab.id)));
 }

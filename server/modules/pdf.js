@@ -289,7 +289,10 @@ export class PdfModule {
       throw new Error('PDF 页码不正确');
     return value;
   }
-  async indexPage({ noteId, documentId, page, text, label, view, items = [] }) {
+  indexPage(request) {
+    return this.serial(() => this.indexPageData(request));
+  }
+  async indexPageData({ noteId, documentId, page, text, label, view, items = [] }) {
     await this.validPage(noteId, documentId, page);
     if (typeof text !== 'string' || text.length > 200000 || !validPdfRect(view))
       throw new Error('PDF 页面文字或尺寸不正确');
@@ -302,29 +305,35 @@ export class PdfModule {
     )
       throw new Error('PDF 文字位置不正确');
     const id = documentId + '_' + page;
-    const value = await this.pages.update(
-      id,
-      (old) =>
-        old
-          ? old.items?.length || !items.length
-            ? old
-            : { ...old, items }
-          : {
-              id,
-              documentId,
-              page,
-              text,
-              label: optionalText(label, 60) || String(page),
-              view,
-              hash: digest(text),
-              items,
-            },
-      { optional: true },
-    );
-    await this.documents.update(documentId, (d) => ({
-      ...d,
-      indexedPages: [...new Set([...(d.indexedPages || []), page])].sort((a, b) => a - b),
-    }));
+    const existing = await this.pages.get(id, { optional: true });
+    const value =
+      existing && (existing.items?.length || !items.length)
+        ? existing
+        : await this.pages.update(
+            id,
+            (old) =>
+              old
+                ? old.items?.length || !items.length
+                  ? old
+                  : { ...old, items }
+                : {
+                    id,
+                    documentId,
+                    page,
+                    text,
+                    label: optionalText(label, 60) || String(page),
+                    view,
+                    hash: digest(text),
+                    items,
+                  },
+            { optional: true },
+          );
+    const document = await this.documents.get(documentId);
+    if (!document.indexedPages?.includes(page))
+      await this.documents.update(documentId, (d) => ({
+        ...d,
+        indexedPages: [...new Set([...(d.indexedPages || []), page])].sort((a, b) => a - b),
+      }));
     return value;
   }
   async annotate(request) {

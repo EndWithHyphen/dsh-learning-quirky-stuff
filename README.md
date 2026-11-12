@@ -4,7 +4,7 @@
 
 Studyboard is a local learning workspace for DeepSeek Harness: handwritten notes, screenshots, structured AI summaries, editable infographics, source-linked knowledge graphs and spaced review.
 
-- **PDF 阅读与笔记（4.5.1 开发版）**：在笔记中导入或关联 PDF，选文划线、手写批注、截取公式与图表到画布、向 AI 提问，并从摘录回到原页。同一原件可供多篇笔记引用。
+- **PDF 阅读与笔记（4.5.2 开发版）**：在笔记中导入或关联 PDF，选文划线、手写批注、截取公式与图表到画布、向 AI 提问，并从摘录回到原页。同一原件可供多篇笔记引用。
 - **自由白板**：触控笔、图片、形状、箭头、文字、自动保存、PDF 导出。
 - **结构化记录**：提问卡、编号知识点、对比卡、步骤卡、图片备注；选定区域后自动排版，双击卡片编辑。
 - **组件提问与备注**：选中文字、图片或一组组件向模型提问，继续追问或留下自己的备注。讨论标记跟随组件，支持已解决、重新打开和来源变化提示。
@@ -14,7 +14,9 @@ Studyboard is a local learning workspace for DeepSeek Harness: handwritten notes
 - **学习周报**：选择周次总结知识主线，逐题回忆、核对答案并记录复习表现；结合具体作答与白板修订回顾进展，保留历史版本并可下载。
 - **知识图谱**：用 SPO 表达材料观点，按主干和分支阅读，关系带来源编号、总结版本和引用片段。图谱未独立核实，可能有偏差或遗漏。
 - **学习模块**：专题工作台、拓展探索、全内容搜索、材料预览、理解反馈，各项可独立开关。
-- **浏览器配套**：侧栏与底部笔记、每个标签页独立绑定笔记、截图与草稿同步。
+- **浏览器配套**：侧栏与底部笔记、每个标签页保留当前绑定、同 URL 自动打开已有笔记、截图与草稿同步。
+
+**插件本身完全免费，使用 MIT 开源协议。** 可选 AI 功能使用你自己配置的模型账户；模型服务产生的费用由对应服务方收取，插件不收取订阅费或 AI 调用加价。
 
 包名：`dsh-learning-quirky-stuff`。作者：Qiangsheng Liu。项目源码使用 [MIT](LICENSE)；第三方依赖与字体保留各自许可，详见构建后的 `THIRD_PARTY_NOTICES.md`。
 
@@ -22,7 +24,7 @@ Studyboard is a local learning workspace for DeepSeek Harness: handwritten notes
 
 已发布版本 **4.4.2** 适配 DSH **0.2.2-rc.1**。macOS 13+ 为完整功能的首批验证平台；发布包附带 Apple Silicon / Intel 本机识别程序。Linux、Windows 的通用功能可运行，但尚未完成完整平台验收，图片识别与本机 PDF 提取会明确提示不支持。
 
-4.4.2 修复组件提问、自动换行、回答 Markdown 和重试状态，并支持删除备注草稿。主分支正在开发 **4.5.1** 的 PDF 阅读与笔记功能；npm 与插件市场目前仍提供 4.4.2。
+4.4.2 修复组件提问、自动换行、回答 Markdown 和重试状态，并支持删除备注草稿。主分支正在开发 **4.5.2** 的 PDF 阅读与笔记功能；npm 与插件市场目前仍提供 4.4.2。
 
 
 桌面版通过 DSH「插件」页面添加 npm 包 `dsh-learning-quirky-stuff@4.4.2`。离线安装可从 [Releases](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases) 下载 `.tgz`，解压后选择 `package` 目录。`desktop` profile 由 Electron 应用管理，CLI 不允许直接修改。
@@ -61,7 +63,7 @@ Chrome 配套为 [Release 中的独立 ZIP](https://github.com/EndWithHyphen/dsh
 
 上面三张截图使用同一份合成演示材料，展示实际插件界面，不包含个人笔记。分类、标签和各项学习模块可按自己的习惯配置；系统学习、专题工作台与周报的完整操作见[使用说明](docs/user-guide.html)。
 
-## PDF 与笔记统一管理（4.5.1 开发版）
+## PDF 与笔记统一管理（4.5.2 开发版）
 
 在笔记列表点击「导入 PDF」建立笔记，或在已有笔记顶部点击「PDF」导入、关联已有文件。左侧读原文，右侧整理画布，分类、标签与回收站沿用笔记体系。
 
@@ -79,7 +81,7 @@ Chrome 配套为 [Release 中的独立 ZIP](https://github.com/EndWithHyphen/dsh
 
 ## Chrome 扩展：边看边记
 
-连接后，在文章或视频页按 **⌘⇧Y**（Windows / Linux：**Ctrl⇧Y**）打开笔记侧栏。每个标签页各自绑定一篇笔记，自动保存网页链接；切换标签页可继续记录对应内容。
+连接后，在文章或视频页按 **⌘⇧Y**（Windows / Linux：**Ctrl⇧Y**）打开笔记侧栏。每个标签页保留自己的笔记绑定；在新标签页或重新打开同一 URL 时，优先打开最近更新且未删除的已有笔记，找不到时才新建。自动保存网页链接，切换标签页可继续记录对应内容。侧栏只在你主动打开过的标签页显示；切到其他标签页时隐藏，返回原标签页恢复。
 
 **侧栏随手记**适合快速留下主线、联系和疑问，写入内容后自动同步到本机 DSH。
 

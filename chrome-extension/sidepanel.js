@@ -1,7 +1,7 @@
 import { request } from './bridge.js';
 import { draftPurge } from './drafts.js';
 import { createPreviewPanel } from './preview-panel.js';
-import { tabNoteKey } from './tab-notes.js';
+import { tabNoteKey, openTabPanel } from './tab-notes.js';
 const panelURL = new URL(window.location.href),
   isBottom = panelURL.searchParams.get('surface') === 'bottom',
   dockSession = panelURL.searchParams.get('session');
@@ -1008,7 +1008,7 @@ $('#dock-mode').title = isBottom ? '切回 Chrome 侧边笔记栏' : '从网页�
 $('#close-dock').hidden = !isBottom;
 $('#dock-mode').addEventListener('click', async () => {
   if (!current?.id) return;
-  const opening = isBottom ? chrome.sidePanel.open({ tabId: current.tabId }) : null;
+  const opening = isBottom ? openTabPanel(current.tabId) : null;
   opening?.catch(() => {});
   $('#dock-mode').disabled = true;
   try {

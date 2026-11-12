@@ -6,6 +6,7 @@ import { pdfReference, pdfCommentElement, pdfSelectionText, normalizePdfText } f
 import { draftRead, draftPut, draftDelete } from '../drafts.js';
 import { download, filename } from '../export.js';
 import { PdfAnnotationSession } from './session.js';
+import { PdfFrameCache } from './frame-cache.js';
 import { openPdf, TextLayer, viewportRect, pdfRect, renderPdfRegion } from './engine.js';
 
 const empty = () => {};
@@ -41,7 +42,9 @@ const PdfReader = React.forwardRef(function PdfReader(
     gesture = useRef(),
     positionTimer = useRef(),
     searchEpoch = useRef(0),
-    editorLoaded = useRef(false);
+    editorLoaded = useRef(false),
+    frames = useRef(null);
+  if (!frames.current) frames.current = new PdfFrameCache();
   const [page, setPage] = useState(focus?.page || notebook.positions?.[documentInfo.id] || 1),
     [count, setCount] = useState(documentInfo.pageCount || 0),
     [zoom, setZoom] = useState('fit'),
@@ -244,7 +247,11 @@ const PdfReader = React.forwardRef(function PdfReader(
     const key = noteId + ':pdf:' + documentInfo.id;
     (async () => {
       const next = await new PdfAnnotationSession({
-        execute,
+        execute: async (request) => {
+          if (!engine.current) throw new Error('PDF 仍在载入');
+          await (await engine.current.page(request.page)).index();
+          return execute(request);
+        },
         persist: (data) => draftPut(key, data),
         load: () => draftRead(key),
         onChange: (value) => {
@@ -300,6 +307,7 @@ const PdfReader = React.forwardRef(function PdfReader(
       searchEpoch.current++;
       clearTimeout(positionTimer.current);
       observer.disconnect();
+      frames.current.clear();
       engine.current?.close();
       engine.current = null;
       onBusy(false);
@@ -314,46 +322,87 @@ const PdfReader = React.forwardRef(function PdfReader(
   useEffect(() => {
     if (!loaded || !engine.current) return;
     const version = ++epoch.current;
-    let renderTask, layer;
+    let layer, preload;
+    const currentEngine = engine.current;
+    const frameAt = (number, current = false) => {
+      const key = [number, zoom, rotation, width, window.devicePixelRatio || 1].join(':');
+      return frames.current.get(
+        key,
+        async (signal) => {
+          const data = await currentEngine.page(number);
+          signal.throwIfAborted();
+          const scale =
+            zoom === 'fit'
+              ? Math.max(
+                  0.1,
+                  (width - 33) /
+                    data.page.getViewport({ scale: 1, rotation: (data.page.rotate + rotation) % 360 }).width,
+                )
+              : Number(zoom);
+          const vp = data.page.getViewport({ scale, rotation: (data.page.rotate + rotation) % 360 });
+          const ratio = Math.min(
+            window.devicePixelRatio || 1,
+            2,
+            Math.sqrt(16_000_000 / (vp.width * vp.height)),
+          );
+          const raster = document.createElement('canvas');
+          raster.width = Math.ceil(vp.width * ratio);
+          raster.height = Math.ceil(vp.height * ratio);
+          const task = data.page.render({
+            canvasContext: raster.getContext('2d'),
+            viewport: vp,
+            transform: [ratio, 0, 0, ratio, 0, 0],
+            background: '#ffffff',
+          });
+          const cancel = () => task.cancel();
+          signal.addEventListener('abort', cancel, { once: true });
+          try {
+            await task.promise;
+            signal.throwIfAborted();
+            return { data, vp, raster, canvas: raster };
+          } catch (error) {
+            raster.width = raster.height = 0;
+            throw error;
+          } finally {
+            signal.removeEventListener('abort', cancel);
+          }
+        },
+        current,
+      );
+    };
     setRendering(true);
     setError('');
     setDraftStroke(null);
     gesture.current = null;
     (async () => {
-      const data = await engine.current.page(page);
+      const { data, vp, raster } = await frameAt(page, true);
       if (version !== epoch.current) return;
-      const scale =
-          zoom === 'fit'
-            ? Math.max(
-                0.1,
-                (width - 33) /
-                  data.page.getViewport({ scale: 1, rotation: (data.page.rotate + rotation) % 360 }).width,
-              )
-            : Number(zoom),
-        vp = data.page.getViewport({ scale, rotation: (data.page.rotate + rotation) % 360 });
+      data.index().catch((e) => {
+        if (version === epoch.current && alive.current) setError('PDF 文字索引尚未保存：' + e.message);
+      });
       viewport.current = vp;
       pageData.current = data;
       setSize({ width: vp.width, height: vp.height });
-      const ratio = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(16_000_000 / (vp.width * vp.height)));
-      canvas.current.width = Math.ceil(vp.width * ratio);
-      canvas.current.height = Math.ceil(vp.height * ratio);
+      canvas.current.width = raster.width;
+      canvas.current.height = raster.height;
+      canvas.current.getContext('2d').drawImage(raster, 0, 0);
       textLayer.current.replaceChildren();
       textLayer.current.style.setProperty('--total-scale-factor', String(vp.scale * (vp.userUnit || 1)));
-      renderTask = data.page.render({
-        canvasContext: canvas.current.getContext('2d'),
-        viewport: vp,
-        transform: [ratio, 0, 0, ratio, 0, 0],
-        background: '#ffffff',
-      });
       layer = new TextLayer({ textContentSource: data.content, container: textLayer.current, viewport: vp });
       // The library sets CSS round() dimensions. Explicit dimensions also support
       // older Electron/Chrome and keep rotated text in its unrotated coordinate box.
       textLayer.current.style.width = vp.rawDims.pageWidth * vp.scale * (vp.userUnit || 1) + 'px';
       textLayer.current.style.height = vp.rawDims.pageHeight * vp.scale * (vp.userUnit || 1) + 'px';
-      await Promise.all([renderTask.promise, layer.render()]);
+      await layer.render();
       if (version !== epoch.current) return;
       setRendering(false);
       setRenderKey([page, zoom, rotation, width].join(':'));
+      preload = setTimeout(async () => {
+        for (const number of [page + 1, page - 1]) {
+          if (version !== epoch.current) return;
+          if (number >= 1 && number <= currentEngine.pdf.numPages) await frameAt(number).catch(() => {});
+        }
+      }, 60);
       notify();
       clearTimeout(positionTimer.current);
       positionTimer.current = setTimeout(
@@ -372,7 +421,7 @@ const PdfReader = React.forwardRef(function PdfReader(
     });
     return () => {
       epoch.current++;
-      renderTask?.cancel();
+      clearTimeout(preload);
       layer?.cancel();
     };
   }, [loaded, page, zoom, rotation, width]);
@@ -535,6 +584,7 @@ const PdfReader = React.forwardRef(function PdfReader(
       for (let p = 1; p <= count; p++) {
         if (token !== searchEpoch.current || !alive.current) break;
         const data = await engine.current.page(p);
+        await data.index();
         if (token !== searchEpoch.current) break;
         setScanned(p);
         if (normalizePdfText(data.text).toLowerCase().includes(needle)) {
@@ -592,6 +642,7 @@ const PdfReader = React.forwardRef(function PdfReader(
         <button
           disabled={page <= 1 || !loaded}
           aria-label="PDF 上一页"
+          title="上一页（←）"
           onClick={() => {
             setSelection(null);
             setPage((p) => p - 1);
@@ -619,6 +670,7 @@ const PdfReader = React.forwardRef(function PdfReader(
         <button
           disabled={page >= count || !loaded}
           aria-label="PDF 下一页"
+          title="下一页（→）"
           onClick={() => {
             setSelection(null);
             setPage((p) => p + 1);
@@ -811,6 +863,12 @@ const PdfReader = React.forwardRef(function PdfReader(
           className="sb-pdf-scroll"
           ref={scroller}
           tabIndex={0}
+          aria-label="PDF 阅读区"
+          aria-keyshortcuts="ArrowLeft ArrowRight PageUp PageDown"
+          onPointerDown={(e) => {
+            if (e.button === 0 && !e.target.closest('a,button,input,select,textarea,[contenteditable=true]'))
+              e.currentTarget.focus({ preventScroll: true });
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
               gesture.current = null;
@@ -818,16 +876,29 @@ const PdfReader = React.forwardRef(function PdfReader(
               setMode('text');
               setSelection(null);
             }
-            if (e.target !== scroller.current || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-            if (e.key === 'PageDown' && page < count) {
+            if (
+              e.target !== scroller.current ||
+              e.ctrlKey ||
+              e.metaKey ||
+              e.altKey ||
+              e.shiftKey ||
+              e.isComposing ||
+              !loaded
+            )
+              return;
+            if (['ArrowRight', 'PageDown'].includes(e.key)) {
               e.preventDefault();
+              e.stopPropagation();
               setSelection(null);
-              setPage((p) => p + 1);
+              window.getSelection()?.removeAllRanges();
+              setPage((p) => Math.min(count, p + 1));
             }
-            if (e.key === 'PageUp' && page > 1) {
+            if (['ArrowLeft', 'PageUp'].includes(e.key)) {
               e.preventDefault();
+              e.stopPropagation();
               setSelection(null);
-              setPage((p) => p - 1);
+              window.getSelection()?.removeAllRanges();
+              setPage((p) => Math.max(1, p - 1));
             }
           }}
         >

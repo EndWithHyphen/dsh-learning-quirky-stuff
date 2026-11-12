@@ -1,6 +1,12 @@
 .study-canvas-surface [data-testid='toolbar-laser'] {
   display: none !important;
 }
+/* Excalidraw's pointer-transparent trail layer spans the window. It inherits
+   no-drag from the focusable editor in Electron, which also masks the titlebar. */
+.study-canvas-surface .excalidraw .SVGLayer,
+.study-canvas-surface .excalidraw .SVGLayer * {
+  -webkit-app-region: initial;
+}
 .study-shortcuts-mask {
   position: fixed;
   inset: 0;

@@ -11,6 +11,7 @@ import { LearningRuntime } from '../server/runtime.js';
 import { executeStudyAction } from '../server/service-actions.js';
 import { excalidrawChinese } from './excalidraw-locale.mjs';
 import { assertPdfLayoutStable } from '../tests/browser/pdf-layout.mjs';
+import { assertPdfKeyboardAndWindowDrag } from '../tests/browser/pdf-interaction.mjs';
 import { excalidrawCancellation } from './excalidraw-cancellation.mjs';
 const root = resolve('.'),
   temp = await mkdtemp(join(tmpdir(), 'study-pdf-ui-')),
@@ -36,6 +37,10 @@ const app = {
   graphJobs: { get: () => null, forgetBoards: async () => {} },
   capture: { forgetBoards: async () => {} },
 };
+let releaseIndex;
+const indexGate = new Promise((resolve) => {
+  releaseIndex = resolve;
+});
 await build({
   entryPoints: ['tests/browser/entry.jsx'],
   outfile: join(temp, 'app.js'),
@@ -51,6 +56,19 @@ await build({
     {
       name: 'test-canvas-api',
       setup(b) {
+        b.onLoad({ filter: /src\/pdf\/frame-cache\.js$/ }, async (args) => ({
+          contents: (await readFile(args.path, 'utf8'))
+            .replace(
+              'this.entries = new Map();',
+              'this.entries = new Map(); window.__pdfTestFrames = this; window.__pdfRasterCalls = 0;',
+            )
+            .replace(
+              'return build(entry.controller.signal);',
+              'window.__pdfRasterCalls++; return build(entry.controller.signal);',
+            ),
+          loader: 'js',
+          resolveDir: join(root, 'src/pdf'),
+        }));
         b.onLoad({ filter: /src\/client\.jsx$/ }, async (args) => ({
           contents: (await readFile(args.path, 'utf8')).replace(
             'excali.current = value;',
@@ -84,6 +102,7 @@ const server = createServer(async (req, res) => {
       for await (const c of req) chunks.push(c);
       const { method, args } = JSON.parse(Buffer.concat(chunks)),
         request = args[0];
+      if (request?.action === 'pdf.indexPage' && request.page === 1) await indexGate;
       const value =
         method === 'models' || request?.action === 'features.models'
           ? [{ id: 'pdf-fixture', provider: 'fixture', name: '验证模型', vision: true }]
@@ -146,7 +165,11 @@ try {
     .getByLabel('导入 PDF 新建笔记', { exact: true })
     .setInputFiles(resolve('tests/fixtures/pdf-learning-sample.pdf'));
   await page.locator('.sb-pdf-page .textLayer span').first().waitFor({ timeout: 30000 });
+  await page.locator('.sb-pdf-page[data-ready="true"]').waitFor();
+  // A stalled index write must not prevent showing the PDF or its selectable text.
+  releaseIndex();
   await page.getByRole('spinbutton', { name: 'PDF 页码' }).waitFor();
+  const interaction = await assertPdfKeyboardAndWindowDrag(page);
   const note = (await store.library()).boards[0];
   assert.equal(note.pdfCount, 1);
   const document = (await runtime.execute({ action: 'pdf.list', noteId: note.id })).documents[0];
@@ -331,6 +354,7 @@ try {
     JSON.stringify({
       pdf: true,
       idleLayout,
+      ...interaction,
       import: true,
       sharedOriginal: true,
       selection: true,
@@ -353,6 +377,7 @@ try {
   await writeFile('dist/qa/pdf-failure.txt', await page.locator('body').innerText());
   throw e;
 } finally {
+  releaseIndex();
   await browser.close();
   await runtime.dispose();
   server.closeAllConnections();

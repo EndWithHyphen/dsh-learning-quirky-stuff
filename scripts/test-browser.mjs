@@ -180,6 +180,46 @@ try {
     (context) => chrome.runtime.sendMessage({ action: 'bind-tab-note', context }),
     context,
   );
+  const unvisited = await browser.newPage();
+  await unvisited.goto(origin + '/article?other-tab');
+  const unvisitedTab = await options.evaluate(
+    async (url) => (await chrome.tabs.query({})).find((t) => t.url === url),
+    origin + '/article?other-tab',
+  );
+  await options.waitForFunction(
+    async (id) => (await chrome.sidePanel.getOptions({ tabId: id })).enabled === false,
+    unvisitedTab.id,
+  );
+  assert.equal((await options.evaluate(() => chrome.sidePanel.getOptions({}))).enabled, false);
+  await options.evaluate(async (tabId) => {
+    const { openTabPanel } = await import('./tab-notes.js');
+    const button = document.createElement('button');
+    button.id = 'qa-open-specific-panel';
+    button.textContent = '打开测试标签页侧栏';
+    button.onclick = () => {
+      openTabPanel(tabId).then(
+        () => (button.dataset.result = 'opened'),
+        (e) => (button.dataset.error = e.message),
+      );
+    };
+    document.body.append(button);
+  }, tab.id);
+  await options.locator('#qa-open-specific-panel').click();
+  await options.waitForFunction(
+    () =>
+      document.querySelector('#qa-open-specific-panel').dataset.result ||
+      document.querySelector('#qa-open-specific-panel').dataset.error,
+  );
+  assert.equal(await options.locator('#qa-open-specific-panel').getAttribute('data-error'), null);
+  const panels = await options.evaluate(
+    async (ids) => Promise.all(ids.map((tabId) => chrome.sidePanel.getOptions({ tabId }))),
+    [tab.id, unvisitedTab.id],
+  );
+  assert.equal(panels[0].enabled, true);
+  assert.equal(panels[0].path, 'sidepanel.html?tabId=' + tab.id);
+  assert.equal(panels[1].enabled, false);
+  await options.evaluate((tabId) => chrome.sidePanel.setOptions({ tabId, enabled: false }), tab.id);
+  await unvisited.close();
   panel = await browser.newPage();
   panel.on('pageerror', (e) => errors.push(e.message));
   await panel.goto('chrome-extension://' + id + '/sidepanel.html?tabId=' + tab.id);
@@ -500,6 +540,7 @@ try {
     JSON.stringify({
       ok: true,
       pairing: true,
+      tabScopedSidePanel: true,
       revoke: true,
       canvasCreateEditSaveReload: true,
       toolbarOutsideCanvas: true,

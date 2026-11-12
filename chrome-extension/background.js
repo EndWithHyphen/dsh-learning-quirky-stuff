@@ -9,6 +9,8 @@ import {
   readTabNote,
   updateTabNote,
   configureTab,
+  openTabPanel,
+  forgetTabPanel,
   configureExistingTabs,
   panelContext,
 } from './tab-notes.js';
@@ -98,15 +100,14 @@ function activate(tab) {
     return;
   }
   // Open before any storage or network wait, while the user gesture is active.
-  configureTab(tab.id).catch(() => {});
-  const opening = chrome.sidePanel.open({ tabId: tab.id });
+  const opening = openTabPanel(tab.id);
   const item = {
     requestId: crypto.randomUUID(),
     title: tab.title || '网页笔记',
     url: tab.url,
     tabId: tab.id,
     windowId: tab.windowId,
-    reuse: false,
+    reuse: true,
     requestedAt: Date.now(),
   };
   Promise.resolve(opening).then(
@@ -265,7 +266,10 @@ chrome.runtime.onStartup.addListener(async () => {
   await flush();
 });
 chrome.tabs.onCreated?.addListener((tab) => configureTab(tab.id).catch(() => {}));
-chrome.tabs.onRemoved?.addListener((id) => updateTabNote(id, () => null).catch(() => {}));
+chrome.tabs.onRemoved?.addListener((id) => {
+  forgetTabPanel(id);
+  updateTabNote(id, () => null).catch(() => {});
+});
 chrome.tabs.onAttached?.addListener((id, info) =>
   updateTabNote(id, (current) => (current ? { ...current, windowId: info.newWindowId } : null)).catch(
     () => {},

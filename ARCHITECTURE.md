@@ -183,3 +183,7 @@ npm run check:format
 PDF 选区讨论使用 `canvasComments` 的 `canvas.kind: pdf`，共享模型路由、幂等发送、任务取消与来源快照。原页适配器负责范围截图和标记定位。首版 Chrome 仅支持已有画布摘录，不开放 PDF RPC。
 
 整库备份传入 `separateFiles: true` 后仅获取清单，再通过 `pdf.backupRead` 分块打包；ZIP 内 `backup.json` + `pdfs/<hash>.pdf` 保存一次原件，避免单次 RPC 携带所有 PDF。该读取只用于 DSH 整库备份，不暴露给 Chrome 桥接。没有 PDF 时沿用 JSON 备份格式。
+
+PDF 阅读器将索引落盘与画面显示分开：显示后在后台索引，批注队列提交前仍等待该页索引，失败可重试。`PdfFrameCache` 缓存当前页及相邻页的离屏位图，最多三帧并限制总像素；淘汰和关闭时取消绘制并释放位图。预读页在真正显示或搜索前不写入页面索引，快翻时旧帧不能覆盖当前页。
+
+Chrome 侧栏没有全窗口默认页面。每个标签页默认禁用，只在显式用户操作中设置自己的页面并立即调用 open，保留 Chrome 的用户手势。关闭标签页会释放其可见状态；笔记绑定与 URL 复用独立处理，服务端串行查找保证同 URL 并发打开只创建一次。

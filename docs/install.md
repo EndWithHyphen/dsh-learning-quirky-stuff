@@ -9,10 +9,10 @@
 命令行版可在独立的 `studyboard` profile 安装：
 
 ```sh
-dsh plugin --profile studyboard add ./dsh-learning-quirky-stuff-4.5.1.tgz
+dsh plugin --profile studyboard add ./dsh-learning-quirky-stuff-4.5.2.tgz
 ```
 
-也可通过 DSH 的添加插件入口选择安装来源。安装后启用学习画板，打开主面板。当前源码为 4.5.1 开发版，上面的路径指向本机构建产物。已公开的 npm 版本为 `dsh-learning-quirky-stuff@4.4.2`；以 npm 和 Releases 的实际记录为准。
+也可通过 DSH 的添加插件入口选择安装来源。安装后启用学习画板，打开主面板。当前源码为 4.5.2 开发版，上面的路径指向本机构建产物。已公开的 npm 版本为 `dsh-learning-quirky-stuff@4.4.2`；以 npm 和 Releases 的实际记录为准。
 
 ## 从旧本机版本迁移
 
@@ -26,7 +26,7 @@ DSH CLI 示例（仅用于命令行 profile；桌面版请在插件页面移除�
 
 ```sh
 dsh plugin --profile studyboard remove @local/dsh-studyboard
-dsh plugin --profile studyboard add ./dsh-learning-quirky-stuff-4.5.1.tgz
+dsh plugin --profile studyboard add ./dsh-learning-quirky-stuff-4.5.2.tgz
 ```
 
 数据目录不在 npm 包或扩展目录内。卸载和升级只更换程序，不主动删除笔记。需要回滚时关闭 DSH，恢复之前保留的程序包和数据目录副本。不要将新版本产生的数据直接覆盖到无法识别它的旧版本上。

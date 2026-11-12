@@ -152,7 +152,7 @@ export async function openPdf(execute, noteId, document, onPassword, onFailure, 
                   };
                 });
               const text = items.map((item) => item.text + (item.eol ? '\n' : ' ')).join('');
-              await execute({
+              const indexRequest = {
                 action: 'pdf.indexPage',
                 noteId,
                 documentId: document.id,
@@ -163,8 +163,16 @@ export async function openPdf(execute, noteId, document, onPassword, onFailure, 
                 items: items.filter(
                   (item) => item.text && item.rect[2] > item.rect[0] && item.rect[3] > item.rect[1],
                 ),
-              });
-              return { page, content, items, text };
+              };
+              let indexing;
+              const index = () =>
+                (indexing ||= execute(indexRequest).catch((error) => {
+                  indexing = null;
+                  throw error;
+                }));
+              // The visible reader starts indexing in the background; preloaded
+              // pages stay in memory until actually viewed or explicitly searched.
+              return { page, content, items, text, index };
             })().catch((error) => {
               cache.delete(number);
               throw error;

@@ -66,3 +66,52 @@ test('Chrome 绑定后访问；限定本机且不接受普通网页伪造', asyn
   assert.equal(invalid.status, 400);
   assert.equal((await store.all()).boards.length, 1);
 });
+
+test('同 URL 再次打开复用已有笔记，并发新标签页不会重复创建', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'study-url-reuse-')),
+    store = await new LibraryStore(join(root, 'data')).init(),
+    server = new CaptureServer(store, { port: 0 });
+  await server.start();
+  t.after(() => server.close());
+  const url = 'https://example.com/article?id=123';
+  const first = await server.capture({ requestId: 'same-url-first', url, title: '原笔记', reuse: true });
+  await store.dispatch({
+    action: 'saveWebNotes',
+    id: first.id,
+    url,
+    text: '保留已有的学习记录',
+    baseVersion: 0,
+  });
+  const results = await Promise.all(
+    [1, 2, 3].map((i) =>
+      server.capture({ requestId: 'same-url-new-tab-' + i, url, title: '重开的网页', reuse: true }),
+    ),
+  );
+  assert.ok(results.every((r) => r.id === first.id && r.reused));
+  assert.equal((await store.all()).boards.length, 1);
+  assert.equal((await store.read(first.id)).webNotes.text, '保留已有的学习记录');
+  const other = await server.capture({
+    requestId: 'other-url-first',
+    url: 'https://example.com/article?id=124',
+    reuse: true,
+  });
+  assert.notEqual(other.id, first.id, 'Different content query parameters keep independent notes');
+  const oldChoice = await store.create({ title: '这个标签页原来选择的笔记', source: { url, title: '原文' } });
+  assert.equal(
+    (await server.capture({ requestId: 'same-url-bound-choice', url, reuseId: oldChoice.id, reuse: true }))
+      .id,
+    oldChoice.id,
+  );
+  await store.metadata({ id: oldChoice.id, deleted: true });
+  assert.equal(
+    (await server.capture({ requestId: 'same-url-after-trash', url, reuse: true })).id,
+    first.id,
+    'Trashed duplicates cannot replace a live note',
+  );
+  const emptyUrl = 'https://example.com/new';
+  const concurrent = await Promise.all(
+    [1, 2, 3].map((i) => server.capture({ requestId: 'new-url-parallel-' + i, url: emptyUrl, reuse: true })),
+  );
+  assert.equal(new Set(concurrent.map((r) => r.id)).size, 1);
+  assert.equal(concurrent.filter((r) => !r.reused).length, 1);
+});

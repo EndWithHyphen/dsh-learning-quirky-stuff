@@ -27,7 +27,7 @@ test('快捷键先打开侧栏，再创建或复用笔记，创建结果反馈�
       setOptions: async () => {},
       open: (args) => {
         order.push('open');
-        assert.equal(args.tabId, 7);
+        assert.ok(Number.isInteger(args.tabId));
         return Promise.resolve();
       },
     },
@@ -66,8 +66,25 @@ test('快捷键先打开侧栏，再创建或复用笔记，创建结果反馈�
   assert.equal(order[0], 'open');
   assert.equal(state['reading-tab:7'].id, 'note-id');
   assert.equal(state['reading-tab:7'].status, 'ready');
-  assert.equal(requests[0].reuse, false);
+  assert.equal(requests[0].reuse, true);
   assert.equal(state.queue.length, 0);
+  const newTab = { ...tab, id: 8 };
+  chrome.commands.onCommand.listeners[0]('capture-note', newTab);
+  for (let i = 0; i < 100 && (state['reading-tab:8']?.status !== 'ready' || state.queue.length); i++)
+    await new Promise((r) => setTimeout(r, 5));
+  assert.equal(state['reading-tab:8'].id, 'note-id');
+  assert.equal(state['reading-tab:7'].tabId, 7);
+  assert.equal(state['reading-tab:8'].tabId, 8);
+  assert.equal(requests[1].reuse, true);
+  assert.equal(requests[1].reuseId, undefined, 'New tabs ask the server to find the URL');
+  chrome.commands.onCommand.listeners[0]('capture-note', tab);
+  for (
+    let i = 0;
+    i < 100 && (requests.length < 3 || state['reading-tab:7'].status !== 'ready' || state.queue.length);
+    i++
+  )
+    await new Promise((r) => setTimeout(r, 5));
+  assert.equal(requests[2].reuseId, 'note-id', 'Existing tab bindings take priority');
 });
 test('截图只允许当前绑定网页；区域取消不会截屏', async () => {
   const ev = event(),
