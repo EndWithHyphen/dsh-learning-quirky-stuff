@@ -10,6 +10,9 @@ import { LearningStore } from '../learning.js';
 import { LearningRuntime } from '../server/runtime.js';
 import { STUDY_PLAN_SCHEMA } from '../server/system-study/schema.js';
 import { WEEKLY_SCHEMA } from '../server/modules/weekly.js';
+import { studyFixture } from '../tests/fixture.mjs';
+import { compactDiagram } from '../tests/compact-diagram-fixture.mjs';
+import { parseStudy } from '../study-schema.js';
 import { passage, studyPlanFixture, systemStudyFixture } from '../tests/system-study-fixture.mjs';
 import { excalidrawChinese } from './excalidraw-locale.mjs';
 import { excalidrawCancellation } from './excalidraw-cancellation.mjs';
@@ -128,6 +131,12 @@ await store.save({
     appState: {},
   },
 });
+const materialSummary = await store.addSummary(note.id, {
+  study: parseStudy({ ...studyFixture, version: 3, takeaways: [], diagrams: [compactDiagram] }),
+  text: '材料总结排版验证',
+  provider: 'fixture',
+  model: 'fixture',
+});
 await build({
   absWorkingDir: root,
   entryPoints: ['tests/browser/entry.jsx'],
@@ -219,12 +228,91 @@ try {
   await page.locator('.sb-nav-row').filter({ hasText: '全部笔记' }).click();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByText('系统学习界面验证', { exact: true }).first().click();
-  await page.getByRole('button', { name: 'AI总结', exact: true }).click();
+  await page.getByRole('button', { name: /^AI总结/ }).click();
+  const modeBar = page.getByRole('navigation', { name: '学习模式' });
+  const before = await modeBar.boundingBox();
+  const close = page.getByRole('button', { name: '关闭AI总结', exact: true });
+  assert.equal(
+    await close.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+    }),
+    true,
+    'Canvas toolbar must not cover the summary header',
+  );
+  const diagram = page.getByRole('img', { name: compactDiagram.title });
+  await diagram.scrollIntoViewIfNeeded();
+  await page.waitForFunction(
+    () => document.querySelector('.sb-study-diagram svg')?.dataset.layoutDirection === 'LR',
+  );
+  assert.ok((await diagram.boundingBox()).height < 110);
+  await page.screenshot({ path: join(qa, 'summary-diagram-wide.png') });
+  await page.setViewportSize({ width: 700, height: 1000 });
+  await page.waitForFunction(
+    () => document.querySelector('.sb-study-diagram svg')?.dataset.layoutDirection === 'TB',
+  );
+  assert.ok((await diagram.boundingBox()).height < 400);
+  await page.screenshot({ path: join(qa, 'summary-diagram-narrow.png') });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.getByRole('button', { name: '放回白板批注', exact: true }).click();
+  await page.locator('.sb-study-panel').waitFor({ state: 'hidden' });
+  let summaryShapes = [];
+  for (let i = 0; i < 100; i++) {
+    summaryShapes = (await store.read(note.id)).scene.elements.filter(
+      (e) => e.customData?.studyboard?.summaryId === materialSummary.id && !e.isDeleted,
+    );
+    if (summaryShapes.length) break;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  assert.ok(summaryShapes.some((e) => e.type === 'arrow'));
+  assert.ok(
+    summaryShapes.every(
+      (e) =>
+        Number.isFinite(e.x) && Number.isFinite(e.y) && Number.isFinite(e.width) && Number.isFinite(e.height),
+    ),
+  );
+  for (const node of compactDiagram.nodes)
+    assert.ok(summaryShapes.some((e) => e.type === 'text' && e.text.replace(/\s/g, '') === node.label));
+  await page.getByRole('button', { name: /^AI总结/ }).click();
   await page.getByRole('button', { name: '系统学习', exact: true }).click();
+  await page.getByLabel('系统学习主题', { exact: true }).waitFor();
+  const after = await modeBar.boundingBox();
+  for (const key of ['x', 'y', 'width', 'height'])
+    assert.ok(Math.abs(before[key] - after[key]) < 1, 'Mode tabs moved: ' + key);
+  assert.equal(await page.locator('.sb-study-panel > header').count(), 1);
+  await page.getByRole('button', { name: '材料总结', exact: true }).click();
+  assert.ok(await page.getByRole('button', { name: '关闭AI总结', exact: true }).isVisible());
+  await page.getByRole('button', { name: '系统学习', exact: true }).click();
+
   await page.getByLabel('系统学习主题', { exact: true }).fill('开放表达与公共判断');
   await page.getByRole('button', { name: '生成系统学习白板', exact: true }).click();
   await page.locator('.sb-system-canvas').waitFor({ timeout: 30000 });
   await page.locator('.sb-system-canvas-actions').getByText('已保存', { exact: true }).waitFor();
+  const overviewWidth = await page.locator('.sb-system-overview').evaluate((el) => {
+    const parent = el.parentElement,
+      style = getComputedStyle(parent);
+    return {
+      actual: el.getBoundingClientRect().width,
+      available: parent.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
+    };
+  });
+  assert.ok(
+    Math.abs(overviewWidth.actual - overviewWidth.available) < 1,
+    'System study overview should use its reading column: ' + JSON.stringify(overviewWidth),
+  );
+  const readingBlocks = await page
+    .locator('.sb-system-next article,.sb-system-review article')
+    .evaluateAll((elements) =>
+      elements.map((el) => ({
+        width: el.getBoundingClientRect().width,
+        available: el.parentElement.clientWidth,
+      })),
+    );
+  assert.ok(readingBlocks.length >= 2);
+  assert.ok(
+    readingBlocks.every((r) => Math.abs(r.width - r.available) < 1),
+    'Research and review blocks should fill the content column',
+  );
   let records = await runtime.repositories['study-canvases'].list();
   assert.equal(records.length, 1);
   const id = records[0].id;

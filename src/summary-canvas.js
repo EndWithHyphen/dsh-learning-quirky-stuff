@@ -1,7 +1,7 @@
 import { convertToExcalidrawElements } from '@excalidraw/excalidraw';
 import { legacyStudy } from '../study-schema.js';
 import { wrapLearningText } from './learning-layout.js';
-import { diagramLayout, diagramLines } from './diagram-layout.js';
+import { diagramLayout } from './diagram-layout.js';
 import { placeInfographic } from './infographic-render.js';
 export function summaryCanvas(summary, scene, origin, infographics = []) {
   const study = legacyStudy(summary),
@@ -38,55 +38,53 @@ export function summaryCanvas(summary, scene, origin, infographics = []) {
   function diagram(d) {
     group = crypto.randomUUID();
     text(d.title, 23);
-    const layout = diagramLayout(d),
-      scale = width / layout.width,
+    const layout = diagramLayout(d, { availableWidth: width, fontSize: 17 }),
+      scale = Math.min(1, width / layout.width),
       offsetY = y,
-      byId = new Map(layout.nodes.map((n) => [n.id, n]));
-    const endpoint = (a, b) => {
-      const dx = b.x - a.x,
-        dy = b.y - a.y,
-        t = Math.min(
-          (a.width / 2 + 4) / Math.max(0.01, Math.abs(dx)),
-          (a.height / 2 + 4) / Math.max(0.01, Math.abs(dy)),
-        );
-      return { x: a.x + dx * t, y: a.y + dy * t };
-    };
-    for (const e of d.edges) {
-      const a = byId.get(e.from),
-        b = byId.get(e.to);
-      if (!a || !b) continue;
-      const p = endpoint(a, b),
-        q = endpoint(b, a),
-        dx = (q.x - p.x) * scale,
-        dy = (q.y - p.y) * scale;
+      offsetX = origin.x + (width - layout.width * scale) / 2;
+    for (const edge of layout.edges) {
+      const first = edge.points[0],
+        label = edge.label;
       add({
         type: 'arrow',
-        x: origin.x + p.x * scale,
-        y: offsetY + p.y * scale,
-        points: [
-          [0, 0],
-          [dx, dy],
-        ],
+        x: offsetX + first.x * scale,
+        y: offsetY + first.y * scale,
+        points: edge.points.map((p) => [(p.x - first.x) * scale, (p.y - first.y) * scale]),
         strokeColor: '#718276',
         roughness: 0,
         endArrowhead: 'arrow',
       });
-      if (e.label)
+      if (label.width) {
+        add({
+          type: 'rectangle',
+          x: offsetX + (label.x - label.width / 2) * scale,
+          y: offsetY + (label.y - label.height / 2) * scale,
+          width: label.width * scale,
+          height: label.height * scale,
+          strokeColor: 'transparent',
+          backgroundColor: scene.appState?.viewBackgroundColor || '#ffffff',
+          fillStyle: 'solid',
+          roughness: 0,
+        });
         add({
           type: 'text',
-          x: origin.x + ((p.x + q.x) * scale) / 2 - 50,
-          y: offsetY + ((p.y + q.y) * scale) / 2 - 16,
-          text: wrapLearningText(e.label, 100, 12, measure),
-          fontSize: 12,
+          x: offsetX + (label.x - label.width / 2 + 6) * scale,
+          y: offsetY + (label.y - (label.lines.length * label.lineHeight) / 2) * scale,
+          width: (label.width - 12) * scale,
+          text: label.lines.join('\n'),
+          fontSize: label.fontSize * scale,
+          lineHeight: label.lineHeight / label.fontSize,
           fontFamily: 2,
+          textAlign: 'center',
+          autoResize: false,
           strokeColor: '#526859',
         });
+      }
     }
     for (const n of layout.nodes) {
-      const lines = diagramLines(n.label, n.width === 200 ? 11 : 12);
       add({
         type: 'rectangle',
-        x: origin.x + (n.x - n.width / 2) * scale,
+        x: offsetX + (n.x - n.width / 2) * scale,
         y: offsetY + (n.y - n.height / 2) * scale,
         width: n.width * scale,
         height: n.height * scale,
@@ -98,12 +96,15 @@ export function summaryCanvas(summary, scene, origin, infographics = []) {
       });
       add({
         type: 'text',
-        x: origin.x + (n.x - n.width / 2 + 12) * scale,
-        y: offsetY + (n.y - lines.length * 12) * scale,
-        text: lines.join('\n'),
-        fontSize: 17 * scale,
+        x: offsetX + (n.x - n.width / 2 + 14) * scale,
+        y: offsetY + (n.y - (n.lines.length * n.lineHeight) / 2) * scale,
+        width: (n.width - 28) * scale,
+        text: n.lines.join('\n'),
+        fontSize: n.fontSize * scale,
         fontFamily: 2,
-        lineHeight: 1.4,
+        lineHeight: n.lineHeight / n.fontSize,
+        textAlign: 'center',
+        autoResize: false,
         strokeColor: '#24382c',
       });
     }

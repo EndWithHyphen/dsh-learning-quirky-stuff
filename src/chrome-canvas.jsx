@@ -304,9 +304,7 @@ export async function mount(root, context, callbacks = {}) {
                 ...initial.appState,
                 currentItemFontFamily: 2,
                 activeTool: {
-                  type: initial.elements.some((e) => e.type === 'image' && !e.isDeleted)
-                    ? 'selection'
-                    : 'freedraw',
+                  type: 'selection',
                   customType: null,
                   locked: false,
                   lastActiveTool: null,

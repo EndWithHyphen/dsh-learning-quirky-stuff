@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "学习画板 · 快捷收藏",
-  "version": "4.5.2",
+  "version": "4.5.3",
   "description": "边看文章和视频边记笔记，截图自动同步到 DSH 学习画板。",
   "permissions": [
     "activeTab",

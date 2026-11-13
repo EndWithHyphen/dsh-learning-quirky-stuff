@@ -32,3 +32,19 @@ PDF 交互回归模拟 DSH 的原生窗口拖动样式，确保画布的透明 S
 网页笔记回归检查同 URL 新标签页的复用请求、已有标签页绑定优先级、并发打开只创建一篇、已有内容保留、查询参数区分和回收站条目排除。
 
 翻页回归还阻塞索引写入来验证页面仍能显示，并检查相邻页预读与位图复用。缓存单元测试覆盖内存预算、取消、迟到结果释放及失败重试。Chrome 浏览器测试通过真实扩展 API 的用户点击打开指定标签页侧栏，校验默认全局侧栏与未打开标签页均为禁用状态。
+
+总结排版回归覆盖关系链在宽、窄阅读区的布局、文字与节点边界、可编辑画布导出、材料总结与系统学习切换时头部及 Tab 位置稳定，以及大屏正文使用完整内容列。Chrome 空白画布点击测试确保默认选择工具不会产生误触笔迹。
+
+总结提示词的效果用真实模型对照评估，独立于上述代码测试。`tests/summary-evaluation-fixture.mjs` 提供实验报告、算法教程、观点评论、数据报告、虚构事件和图文笔记六类合成材料，后两类作为留出样本。评估要点随材料维护，关注信息保留、关键关系、表达效果和复习价值；字符数仅供比较，不能代替质量判断。
+
+修改提示词前保存完整输入快照，修改后使用同一模型和推理等级生成对照：
+
+```sh
+node scripts/evaluate-summary.mjs --snapshot --output dist/summary-baseline
+# 调整提示词后，先评估 development，再评估 holdout。
+node scripts/evaluate-summary.mjs --baseline dist/summary-baseline --output dist/summary-evaluation --phase development --model YOUR_CODEX_MODEL --effort max
+node scripts/evaluate-summary.mjs --baseline dist/summary-baseline --output dist/summary-evaluation --phase holdout --model YOUR_CODEX_MODEL --effort max
+node scripts/render-summary-evaluation.mjs dist/summary-evaluation
+```
+
+生成命令会使用本机 Codex 登录并消耗模型额度；不纳入 `npm test`。结果、完整提示词、文字稿和图文对照页都写入已忽略的 `dist/`，不写入实际笔记。相同输入、图片、模型与推理等级的成功结果可复用；格式校验通过后仍需人工对照材料审阅，`report.html` 使用现有信息图导出与关系图布局展示结果。`preview-errors.json` 记录实际渲染失败。

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { legacyStudy } from '../study-schema.js';
-import { diagramLayout, diagramLines } from './diagram-layout.js';
+import { diagramLayout } from './diagram-layout.js';
 import SourceFigure from './source-figure.jsx';
 import { useLearning } from './features/context.jsx';
 import { highlightText } from './features/source-focus.js';
@@ -183,64 +183,76 @@ export function AnnotatedText({ text = '', blockId, summary, boardId, api, onCha
 
 export function StudyDiagram({ diagram }) {
   const marker = useId().replace(/:/g, ''),
-    layout = diagramLayout(diagram),
-    byId = new Map(layout.nodes.map((n) => [n.id, n]));
-  function end(a, b) {
-    const dx = b.x - a.x,
-      dy = b.y - a.y,
-      t = Math.min(
-        (a.width / 2 + 4) / Math.max(0.01, Math.abs(dx)),
-        (a.height / 2 + 4) / Math.max(0.01, Math.abs(dy)),
-      );
-    return { x: a.x + dx * t, y: a.y + dy * t };
-  }
+    host = useRef(),
+    [availableWidth, setAvailableWidth] = useState(800);
+  useEffect(() => {
+    const resize = () => {
+      const width = host.current?.clientWidth;
+      if (width) setAvailableWidth(width);
+    };
+    resize();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(resize);
+    observer.observe(host.current);
+    return () => observer.disconnect();
+  }, []);
+  const layout = useMemo(() => diagramLayout(diagram, { availableWidth }), [diagram, availableWidth]);
   return (
-    <figure className="sb-study-diagram">
+    <figure className="sb-study-diagram" ref={host}>
       <h4>{diagram.title}</h4>
-      <svg viewBox={'0 0 ' + layout.width + ' ' + layout.height} role="img" aria-label={diagram.title}>
+      <svg
+        width={layout.width}
+        height={layout.height}
+        style={{ maxWidth: layout.width }}
+        viewBox={'0 0 ' + layout.width + ' ' + layout.height}
+        role="img"
+        aria-label={diagram.title}
+        data-layout-direction={layout.direction}
+      >
         <defs>
-          <marker id={marker} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-            <path d="M0 0 L8 4 L0 8" fill="var(--sb-accent)" />
+          <marker
+            id={marker}
+            markerWidth="7"
+            markerHeight="7"
+            refX="6"
+            refY="3.5"
+            orient="auto"
+            markerUnits="userSpaceOnUse"
+          >
+            <path d="M0 0 L7 3.5 L0 7" fill="var(--sb-accent)" />
           </marker>
         </defs>
-        {(diagram.edges || []).map((edge, i) => {
-          const a = byId.get(edge.from),
-            b = byId.get(edge.to);
-          if (!a || !b) return null;
-          const start = end(a, b),
-            finish = end(b, a),
-            cx = (start.x + finish.x) / 2,
-            cy = (start.y + finish.y) / 2,
-            labels = diagramLines(edge.label, 8);
+        {layout.edges.map((edge, i) => {
+          const label = edge.label;
           return (
             <g key={i}>
               <path
-                d={'M' + start.x + ' ' + start.y + ' L' + finish.x + ' ' + finish.y}
+                d={edge.points.map((p, j) => (j ? 'L' : 'M') + p.x + ' ' + p.y).join(' ')}
                 stroke="var(--sb-accent)"
                 strokeOpacity=".65"
-                strokeWidth="1.6"
+                strokeWidth="1.4"
                 fill="none"
                 markerEnd={'url(#' + marker + ')'}
               />
-              {edge.label && (
+              {!!edge.label.width && (
                 <>
                   <rect
-                    x={cx - 56}
-                    y={cy - labels.length * 9 - 5}
-                    width="112"
-                    height={labels.length * 18 + 10}
-                    rx="5"
+                    x={label.x - label.width / 2}
+                    y={label.y - label.height / 2}
+                    width={label.width}
+                    height={label.height}
+                    rx="4"
                     fill="var(--sb-bg)"
                   />
                   <text
-                    x={cx}
-                    y={cy - (labels.length - 1) * 9 + 4}
+                    x={label.x}
+                    y={label.y - ((label.lines.length - 1) * label.lineHeight) / 2 + label.fontSize * 0.35}
                     textAnchor="middle"
-                    fontSize="12"
+                    fontSize={label.fontSize}
                     fill="var(--sb-muted)"
                   >
-                    {labels.map((line, j) => (
-                      <tspan key={j} x={cx} dy={j ? 18 : 0}>
+                    {label.lines.map((line, j) => (
+                      <tspan key={j} x={label.x} dy={j ? label.lineHeight : 0}>
                         {line}
                       </tspan>
                     ))}
@@ -250,38 +262,35 @@ export function StudyDiagram({ diagram }) {
             </g>
           );
         })}
-        {layout.nodes.map((p) => {
-          const labels = diagramLines(p.label, p.width === 200 ? 11 : 12);
-          return (
-            <g key={p.id}>
-              <rect
-                data-diagram-node="true"
-                x={p.x - p.width / 2}
-                y={p.y - p.height / 2}
-                width={p.width}
-                height={p.height}
-                rx="12"
-                fill="var(--sb-panel)"
-                stroke="var(--sb-line)"
-              />
-              <text
-                x={p.x}
-                y={p.y - (labels.length - 1) * 12 + 6}
-                textAnchor="middle"
-                fill="var(--sb-ink)"
-                fontSize="17"
-                fontWeight="550"
-              >
-                {labels.map((line, j) => (
-                  <tspan key={j} x={p.x} dy={j ? 24 : 0}>
-                    {line}
-                  </tspan>
-                ))}
-              </text>
-              <title>{p.detail || p.label}</title>
-            </g>
-          );
-        })}
+        {layout.nodes.map((p) => (
+          <g key={p.id}>
+            <rect
+              data-diagram-node="true"
+              x={p.x - p.width / 2}
+              y={p.y - p.height / 2}
+              width={p.width}
+              height={p.height}
+              rx="8"
+              fill="var(--sb-panel)"
+              stroke="var(--sb-line)"
+            />
+            <text
+              x={p.x}
+              y={p.y - ((p.lines.length - 1) * p.lineHeight) / 2 + p.fontSize * 0.35}
+              textAnchor="middle"
+              fill="var(--sb-ink)"
+              fontSize={p.fontSize}
+              fontWeight="550"
+            >
+              {p.lines.map((line, j) => (
+                <tspan key={j} x={p.x} dy={j ? p.lineHeight : 0}>
+                  {line}
+                </tspan>
+              ))}
+            </text>
+            <title>{p.detail || p.label}</title>
+          </g>
+        ))}
       </svg>
       {diagram.nodes.some((n) => n.detail) && (
         <details className="sb-diagram-details">
@@ -557,7 +566,9 @@ export default function StudyPanel({
     [job, setJob] = useState(null),
     [busy, setBusy] = useState(false),
     [expanded, setExpanded] = useState(
-      !!initialSummaryId || board.summaries.filter((s) => !s.deletedAt).at(-1)?.study?.version === 3,
+      !!initialSummaryId ||
+        !!initialSystemStudyId ||
+        board.summaries.filter((s) => !s.deletedAt).at(-1)?.study?.version === 3,
     ),
     [generation, setGeneration] = useState(!board.summaries.some((s) => !s.deletedAt)),
     [expand, setExpand] = useState(null),
@@ -803,38 +814,13 @@ export default function StudyPanel({
   );
   const selectedModel = models.find((m) => m.provider + '\n' + m.id === route);
 
-  if (systemStudy && moduleUI.enabled('systemStudy'))
-    return (
-      <React.Suspense
-        fallback={
-          <aside className="sb-summary sb-study-panel">
-            <p>正在打开系统学习…</p>
-          </aside>
-        }
-      >
-        <SystemStudyPanel
-          board={board}
-          api={api}
-          models={models}
-          route={route}
-          chooseRoute={chooseRoute}
-          reloadModels={reloadModels}
-          onGenerate={onGenerate}
-          onClose={onClose}
-          onSwitch={() => setSystemStudy(false)}
-          onError={onError}
-          onToast={onToast}
-          initialReportId={initialSystemStudyId}
-        />
-      </React.Suspense>
-    );
+  const showingSystem = systemStudy && moduleUI.enabled('systemStudy');
 
   return (
     <aside className={`sb-summary sb-study-panel ${expanded ? 'sb-study-expanded' : ''}`}>
       <header>
         <div>
           <h2>AI总结</h2>
-          {summary && <small>{summary.kind === 'expand' ? '主题拓展' : 'AI 整理'}</small>}
         </div>
         <div>
           <button
@@ -845,433 +831,473 @@ export default function StudyPanel({
           >
             {expanded ? '↙' : '↗'}
           </button>
-          <button className="sb-icon" aria-label="关闭AI总结" onClick={onClose}>
+          <button
+            className="sb-icon"
+            aria-label={showingSystem ? '关闭系统学习' : '关闭AI总结'}
+            onClick={onClose}
+          >
             ×
           </button>
         </div>
       </header>
       {moduleUI.enabled('systemStudy') && (
-        <nav className="sb-segment" style={{ margin: '8px 20px' }} aria-label="学习模式">
-          <button className="active" aria-current="page">
+        <nav className="sb-study-mode-tabs" aria-label="学习模式">
+          <B
+            primary={!showingSystem}
+            aria-current={!showingSystem ? 'page' : undefined}
+            onClick={() => setSystemStudy(false)}
+          >
             材料总结
-          </button>
-          <button onClick={() => setSystemStudy(true)}>系统学习</button>
+          </B>
+          <B
+            primary={showingSystem}
+            aria-current={showingSystem ? 'page' : undefined}
+            onClick={() => setSystemStudy(true)}
+          >
+            系统学习
+          </B>
         </nav>
       )}
-      <div className="sb-study-scroll" ref={sourceRoot}>
-        <div className="sb-study-inner">
-          <div className="sb-study-topbar">
-            <select
-              aria-label="选择AI总结"
-              disabled={!visibleSummaries.length}
-              value={summary?.id || ''}
-              onChange={(e) => {
-                setActive(e.target.value);
-                setExpand(null);
-              }}
-            >
-              {!visibleSummaries.length && <option value="">暂无总结</option>}
-              {[...visibleSummaries].reverse().map((s) => (
-                <option value={s.id} key={s.id}>
-                  {legacyStudy(s).title} · {date(s.createdAt)}
-                </option>
-              ))}
-            </select>
-            <B onClick={() => setGeneration((v) => !v)}>＋ 重新整理</B>
-          </div>
-          {deletedNotice && (
-            <div className="sb-summary-deleted-notice" role="status">
-              <span>已删除：{legacyStudy(deletedNotice).title}</span>
-              <B disabled={deleting} onClick={() => changeDeleted(deletedNotice, false)}>
-                撤销删除
-              </B>
+      {showingSystem ? (
+        <React.Suspense
+          fallback={
+            <div className="sb-study-scroll">
+              <p className="sb-study-loading">正在打开系统学习…</p>
             </div>
-          )}
-          {removedSummaries.length > 0 && (
-            <details className="sb-summary-trash">
-              <summary>已删除的总结 · {removedSummaries.length}</summary>
-              {[...removedSummaries].reverse().map((s) => (
-                <div key={s.id}>
-                  <span>
-                    <strong>{legacyStudy(s).title}</strong>
-                    <small>{date(s.createdAt)}</small>
-                  </span>
-                  <B disabled={deleting} onClick={() => changeDeleted(s, false)}>
-                    恢复总结
-                  </B>
-                </div>
-              ))}
-            </details>
-          )}
-          {generation && (
-            <section className="sb-generation">
-              <div className="sb-model-field">
-                <label htmlFor={modelSelectId}>模型</label>
-                <div className="sb-model-label">
-                  <select
-                    id={modelSelectId}
-                    value={route}
-                    onChange={(e) => chooseRoute(e.target.value)}
-                    disabled={running}
-                  >
-                    {models.map((m) => (
-                      <option key={m.provider + m.id} value={`${m.provider}\n${m.id}`}>
-                        {m.name}
-                        {!m.vision ? ' · 文字' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    className={`sb-icon sb-model-refresh ${loadingModels ? 'is-loading' : ''}`}
-                    title="刷新模型列表"
-                    aria-label="刷新模型列表"
-                    disabled={loadingModels}
-                    onClick={reloadModels}
-                  >
-                    <svg
-                      width="19"
-                      height="19"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M20 7v5h-5M20 12a8 8 0 1 0-2.3 5.7M20 12l-2.3-5.7" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <p className="sb-muted">
-                {selectedModel?.provider === 'codex-local'
-                  ? '使用本机 Codex 登录 · 推理强度 ' + (selectedModel.reasoningEffort || '默认')
-                  : '可选 DSH 已配置的模型，或使用本机 Codex 登录。'}
-              </p>
-              <div className="sb-segment">
-                <button className={scope === 'board' ? 'active' : ''} onClick={() => setScope('board')}>
-                  整张白板
-                </button>
-                <button
-                  className={scope === 'selection' ? 'active' : ''}
-                  onClick={() => setScope('selection')}
-                >
-                  选中区域
-                </button>
-              </div>
-              <textarea
-                value={instructions}
-                onChange={(e) => setInstructions(e.target.value)}
-                placeholder="可指定核心主题、想厘清的关系，或需要深入的部分"
-                aria-label="学习目标"
-                maxLength={2500}
-              />
-              <B
-                primary
-                disabled={busy || running || !route || !!selectedModel?.unavailable}
-                onClick={() => generate()}
+          }
+        >
+          <SystemStudyPanel
+            board={board}
+            api={api}
+            models={models}
+            route={route}
+            chooseRoute={chooseRoute}
+            reloadModels={reloadModels}
+            onGenerate={onGenerate}
+            onError={onError}
+            onToast={onToast}
+            initialReportId={initialSystemStudyId}
+          />
+        </React.Suspense>
+      ) : (
+        <div className="sb-study-scroll" ref={sourceRoot}>
+          <div className="sb-study-inner">
+            <div className="sb-study-topbar">
+              <select
+                aria-label="选择AI总结"
+                disabled={!visibleSummaries.length}
+                value={summary?.id || ''}
+                onChange={(e) => {
+                  setActive(e.target.value);
+                  setExpand(null);
+                }}
               >
-                生成AI总结
-              </B>
-            </section>
-          )}
-          {running && (
-            <div className="sb-generating">
-              <span className="sb-pulse" />
-              <div>
-                <strong>{job.phase || '正在组织学习内容'}</strong>
-                <p>
-                  正在梳理主线、组织图文与关键关系。已用时{' '}
-                  {Math.max(
-                    0,
-                    Math.floor((Date.now() - Date.parse(job.createdAt || new Date().toISOString())) / 60000),
-                  )}{' '}
-                  分{' '}
-                  {Math.max(
-                    0,
-                    Math.floor((Date.now() - Date.parse(job.createdAt || new Date().toISOString())) / 1000) %
-                      60,
-                  )}{' '}
-                  秒。
-                </p>
-              </div>
-              <B onClick={() => api('cancelSummary', job.id).then(setJob).catch(onError)}>取消</B>
-            </div>
-          )}
-          {job?.status === 'error' && (
-            <p className="sb-notice" role="alert">
-              {job.error}
-            </p>
-          )}
-          {!study && !running && (
-            <div className="sb-summary-empty">
-              <h3>把画布串成一篇图文专题</h3>
-              <p>围绕核心问题组织重点，按需使用原图与关系图。</p>
-            </div>
-          )}
-          {study && (
-            <>
-              <header className="sb-study-title">
-                <span className="sb-eyebrow">
-                  {summary.kind === 'expand' ? 'EXPLORE / 主题拓展' : 'SUMMARY / AI总结'}
-                </span>
-                <h1>{study.title}</h1>
-                <p>
-                  {date(summary.createdAt)} ·{' '}
-                  {summary.provider === 'codex-local'
-                    ? summary.model === 'default'
-                      ? 'Codex · 旧任务未记录具体模型'
-                      : 'Codex · ' +
-                        summary.model +
-                        (summary.reasoningEffort ? ' · ' + summary.reasoningEffort : '')
-                    : summary.model}
-                </p>
-                <div className="sb-study-actions">
-                  <B
-                    onClick={() =>
-                      navigator.clipboard
-                        .writeText(summary.text)
-                        .then(() => onToast('已复制'))
-                        .catch(onError)
-                    }
-                  >
-                    复制
-                  </B>
-                  <B onClick={() => onAddCard(summary)}>放回白板批注</B>
-                  {infographicsEnabled && (
-                    <B
-                      disabled={infographics.busy}
-                      onClick={() => infographics.setComposer({ conceptId: '', title: study.title })}
-                    >
-                      生成信息图
-                    </B>
-                  )}
-                  <B
-                    className="sb-delete-summary"
-                    disabled={deleting || busy}
-                    title="删除当前总结，可在已删除总结中恢复"
-                    onClick={() => changeDeleted(summary, true)}
-                  >
-                    删除这次总结
-                  </B>
-                  {!summary.study && (
-                    <B
-                      disabled={running || busy}
-                      onClick={() => generate('restructure', { parentSummaryId: summary.id })}
-                    >
-                      整理为概念卡片
-                    </B>
-                  )}
-                </div>
-              </header>
-              {enrolled && <p className="sb-success-note">{enrolled}</p>}
-              <p className="sb-annotation-tip">选中文字后点击「划线」，可直接保存，也可顺手添加备注。</p>
-              {study.overview && (
-                <section className="sb-overview">
-                  <AnnotatedText {...annotationProps} text={study.overview} blockId="overview" />
-                </section>
-              )}
-              {study.takeaways?.length > 0 && (
-                <ol className="sb-takeaways">
-                  {study.takeaways.map((text, i) => (
-                    <li key={i}>
-                      <span>{String(i + 1).padStart(2, '0')}</span>
-                      <AnnotatedText {...annotationProps} text={text} blockId={'takeaway:' + i} />
-                    </li>
-                  ))}
-                </ol>
-              )}
-              {study.diagrams.filter((d) => d.placement === 'overview').map(diagramBlock)}
-              {infographicsEnabled && <InfographicRegion {...infographicProps} />}
-              <nav className="sb-topic-nav" aria-label="知识点目录">
-                {study.concepts.map((c, i) => (
-                  <button
-                    key={c.id}
-                    onClick={() =>
-                      document
-                        .getElementById(`study-topic-${summary.id}-${c.id}`)
-                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                    }
-                  >
-                    {String(i + 1).padStart(2, '0')} {c.title}
-                  </button>
+                {!visibleSummaries.length && <option value="">暂无总结</option>}
+                {[...visibleSummaries].reverse().map((s) => (
+                  <option value={s.id} key={s.id}>
+                    {legacyStudy(s).title} · {date(s.createdAt)}
+                  </option>
                 ))}
-              </nav>
-              {study.concepts.map((c, i) => (
-                <article className="sb-concept" key={c.id} id={`study-topic-${summary.id}-${c.id}`}>
-                  <header>
-                    <span>{String(i + 1).padStart(2, '0')}</span>
-                    <h2>{c.title}</h2>
+              </select>
+              <B onClick={() => setGeneration((v) => !v)}>＋ 重新整理</B>
+            </div>
+            {deletedNotice && (
+              <div className="sb-summary-deleted-notice" role="status">
+                <span>已删除：{legacyStudy(deletedNotice).title}</span>
+                <B disabled={deleting} onClick={() => changeDeleted(deletedNotice, false)}>
+                  撤销删除
+                </B>
+              </div>
+            )}
+            {removedSummaries.length > 0 && (
+              <details className="sb-summary-trash">
+                <summary>已删除的总结 · {removedSummaries.length}</summary>
+                {[...removedSummaries].reverse().map((s) => (
+                  <div key={s.id}>
+                    <span>
+                      <strong>{legacyStudy(s).title}</strong>
+                      <small>{date(s.createdAt)}</small>
+                    </span>
+                    <B disabled={deleting} onClick={() => changeDeleted(s, false)}>
+                      恢复总结
+                    </B>
+                  </div>
+                ))}
+              </details>
+            )}
+            {generation && (
+              <section className="sb-generation">
+                <div className="sb-model-field">
+                  <label htmlFor={modelSelectId}>模型</label>
+                  <div className="sb-model-label">
+                    <select
+                      id={modelSelectId}
+                      value={route}
+                      onChange={(e) => chooseRoute(e.target.value)}
+                      disabled={running}
+                    >
+                      {models.map((m) => (
+                        <option key={m.provider + m.id} value={`${m.provider}\n${m.id}`}>
+                          {m.name}
+                          {!m.vision ? ' · 文字' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className={`sb-icon sb-model-refresh ${loadingModels ? 'is-loading' : ''}`}
+                      title="刷新模型列表"
+                      aria-label="刷新模型列表"
+                      disabled={loadingModels}
+                      onClick={reloadModels}
+                    >
+                      <svg
+                        width="19"
+                        height="19"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M20 7v5h-5M20 12a8 8 0 1 0-2.3 5.7M20 12l-2.3-5.7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <p className="sb-muted">
+                  {selectedModel?.provider === 'codex-local'
+                    ? '使用本机 Codex 登录 · 推理强度 ' + (selectedModel.reasoningEffort || '默认')
+                    : '可选 DSH 已配置的模型，或使用本机 Codex 登录。'}
+                </p>
+                <div className="sb-segment">
+                  <button className={scope === 'board' ? 'active' : ''} onClick={() => setScope('board')}>
+                    整张白板
+                  </button>
+                  <button
+                    className={scope === 'selection' ? 'active' : ''}
+                    onClick={() => setScope('selection')}
+                  >
+                    选中区域
+                  </button>
+                </div>
+                <textarea
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                  placeholder="可指定核心主题、想厘清的关系，或需要深入的部分"
+                  aria-label="学习目标"
+                  maxLength={2500}
+                />
+                <B
+                  primary
+                  disabled={busy || running || !route || !!selectedModel?.unavailable}
+                  onClick={() => generate()}
+                >
+                  生成AI总结
+                </B>
+              </section>
+            )}
+            {running && (
+              <div className="sb-generating">
+                <span className="sb-pulse" />
+                <div>
+                  <strong>{job.phase || '正在组织学习内容'}</strong>
+                  <p>
+                    正在梳理主线、组织图文与关键关系。已用时{' '}
+                    {Math.max(
+                      0,
+                      Math.floor(
+                        (Date.now() - Date.parse(job.createdAt || new Date().toISOString())) / 60000,
+                      ),
+                    )}{' '}
+                    分{' '}
+                    {Math.max(
+                      0,
+                      Math.floor(
+                        (Date.now() - Date.parse(job.createdAt || new Date().toISOString())) / 1000,
+                      ) % 60,
+                    )}{' '}
+                    秒。
+                  </p>
+                </div>
+                <B onClick={() => api('cancelSummary', job.id).then(setJob).catch(onError)}>取消</B>
+              </div>
+            )}
+            {job?.status === 'error' && (
+              <p className="sb-notice" role="alert">
+                {job.error}
+              </p>
+            )}
+            {!study && !running && (
+              <div className="sb-summary-empty">
+                <h3>把画布串成一篇图文专题</h3>
+                <p>围绕核心问题组织重点，按需使用原图与关系图。</p>
+              </div>
+            )}
+            {study && (
+              <>
+                <header className="sb-study-title">
+                  <span className="sb-eyebrow">
+                    {summary.kind === 'expand' ? 'EXPLORE / 主题拓展' : 'SUMMARY / AI总结'}
+                  </span>
+                  <h1>{study.title}</h1>
+                  <p>
+                    {date(summary.createdAt)} ·{' '}
+                    {summary.provider === 'codex-local'
+                      ? summary.model === 'default'
+                        ? 'Codex · 旧任务未记录具体模型'
+                        : 'Codex · ' +
+                          summary.model +
+                          (summary.reasoningEffort ? ' · ' + summary.reasoningEffort : '')
+                      : summary.model}
+                  </p>
+                  <div className="sb-study-actions">
+                    <B
+                      onClick={() =>
+                        navigator.clipboard
+                          .writeText(summary.text)
+                          .then(() => onToast('已复制'))
+                          .catch(onError)
+                      }
+                    >
+                      复制
+                    </B>
+                    <B onClick={() => onAddCard(summary)}>放回白板批注</B>
                     {infographicsEnabled && (
                       <B
                         disabled={infographics.busy}
-                        onClick={() => infographics.setComposer({ conceptId: c.id, title: c.title })}
+                        onClick={() => infographics.setComposer({ conceptId: '', title: study.title })}
                       >
-                        配图
+                        生成信息图
                       </B>
                     )}
                     <B
-                      disabled={running}
+                      className="sb-delete-summary"
+                      disabled={deleting || busy}
+                      title="删除当前总结，可在已删除总结中恢复"
+                      onClick={() => changeDeleted(summary, true)}
+                    >
+                      删除这次总结
+                    </B>
+                    {!summary.study && (
+                      <B
+                        disabled={running || busy}
+                        onClick={() => generate('restructure', { parentSummaryId: summary.id })}
+                      >
+                        整理为概念卡片
+                      </B>
+                    )}
+                  </div>
+                </header>
+                {enrolled && <p className="sb-success-note">{enrolled}</p>}
+                <p className="sb-annotation-tip">选中文字后点击「划线」，可直接保存，也可顺手添加备注。</p>
+                {study.overview && (
+                  <section className="sb-overview">
+                    <AnnotatedText {...annotationProps} text={study.overview} blockId="overview" />
+                  </section>
+                )}
+                {study.takeaways?.length > 0 && (
+                  <ol className="sb-takeaways">
+                    {study.takeaways.map((text, i) => (
+                      <li key={i}>
+                        <span>{String(i + 1).padStart(2, '0')}</span>
+                        <AnnotatedText {...annotationProps} text={text} blockId={'takeaway:' + i} />
+                      </li>
+                    ))}
+                  </ol>
+                )}
+                {study.diagrams.filter((d) => d.placement === 'overview').map(diagramBlock)}
+                {infographicsEnabled && <InfographicRegion {...infographicProps} />}
+                <nav className="sb-topic-nav" aria-label="知识点目录">
+                  {study.concepts.map((c, i) => (
+                    <button
+                      key={c.id}
                       onClick={() =>
-                        setExpand((current) =>
-                          current?.origin === c.id
-                            ? null
-                            : { concept: c, origin: c.id, direction: '深入理解', question: '' },
-                        )
+                        document
+                          .getElementById(`study-topic-${summary.id}-${c.id}`)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                       }
                     >
-                      拓展 ↗
-                    </B>
-                  </header>
-                  {expand?.origin === c.id && (
-                    <ExpansionEditor
-                      expand={expand}
-                      setExpand={setExpand}
-                      models={models}
-                      route={route}
-                      chooseRoute={chooseRoute}
-                      running={running}
-                      busy={busy}
-                      onGenerate={() =>
-                        generate('expand', {
-                          parentSummaryId: summary.id,
-                          conceptId: expand.concept.id,
-                          direction: expand.direction,
-                          instructions: expand.question,
-                        })
-                      }
-                      onOpen={(id) => {
-                        setActive(id);
-                        setExpand(null);
-                      }}
-                    />
-                  )}
-                  <AnnotatedText
-                    {...annotationProps}
-                    text={c.explanation}
-                    blockId={`concept:${c.id}:explanation`}
-                  />
-                  {c.example && (
-                    <section className="sb-example">
-                      <h4>案例与补充</h4>
-                      <AnnotatedText
-                        {...annotationProps}
-                        text={c.example}
-                        blockId={`concept:${c.id}:example`}
-                      />
-                    </section>
-                  )}
-                  {c.prerequisites.length > 0 && (
-                    <div className="sb-prerequisites">
-                      <span>相关基础</span>
-                      {c.prerequisites.map((p) => (
-                        <span key={p}>{p}</span>
-                      ))}
-                    </div>
-                  )}
-                  {study.diagrams
-                    .filter((d) => d.placement !== 'overview' && d.conceptIds[0] === c.id)
-                    .map(diagramBlock)}
-                  {(study.sourceFigures || []).filter((f) => f.conceptIds[0] === c.id).map(sourceBlock)}
-                  {infographicsEnabled && <InfographicRegion {...infographicProps} conceptId={c.id} />}
-                </article>
-              ))}
-              {study.diagrams
-                .filter((d) => d.placement !== 'overview' && !d.conceptIds.length)
-                .map(diagramBlock)}
-              {(study.sourceFigures || []).filter((f) => !f.conceptIds.length).map(sourceBlock)}
-              {!!study.insights?.length && (
-                <section className="sb-topic-insights">
-                  <h2>进一步理解</h2>
-                  {study.insights.map((item) => (
-                    <article key={item.id}>
-                      <h3>{item.title}</h3>
-                      <AnnotatedText {...annotationProps} text={item.text} blockId={'insight:' + item.id} />
-                    </article>
+                      {String(i + 1).padStart(2, '0')} {c.title}
+                    </button>
                   ))}
-                </section>
-              )}
-              {study.scopeNote && (
-                <details className="sb-scope-note">
-                  <summary>材料范围与说明</summary>
-                  <AnnotatedText {...annotationProps} text={study.scopeNote} blockId="scopeNote" />
-                </details>
-              )}
-              <Practice
-                key={summary.id}
-                questions={study.questions}
-                concepts={study.concepts}
-                initialQuestionId={
-                  initialBlockId?.startsWith('question:') ? initialBlockId.split(':')[1] : null
-                }
-                onFeedback={
-                  moduleUI.enabled('feedback')
-                    ? (question, answer) =>
-                        moduleUI.navigation.current.openFeature?.('feedback', {
-                          boardId: board.id,
-                          summaryId: summary.id,
-                          mode: 'question',
-                          questionId: question.id,
-                          answer,
-                        })
-                    : null
-                }
-                onEnroll={enroll}
-                renderAnswer={(q) => (
-                  <AnnotatedText {...annotationProps} text={q.answer} blockId={`question:${q.id}:answer`} />
-                )}
-              />
-              {!!study.extensions.length && (
-                <section className="sb-extension-ideas">
-                  <h3>继续往下想</h3>
-                  {study.extensions.map((e, i) => (
-                    <div key={i}>
-                      <button
+                </nav>
+                {study.concepts.map((c, i) => (
+                  <article className="sb-concept" key={c.id} id={`study-topic-${summary.id}-${c.id}`}>
+                    <header>
+                      <span>{String(i + 1).padStart(2, '0')}</span>
+                      <h2>{c.title}</h2>
+                      {infographicsEnabled && (
+                        <B
+                          disabled={infographics.busy}
+                          onClick={() => infographics.setComposer({ conceptId: c.id, title: c.title })}
+                        >
+                          配图
+                        </B>
+                      )}
+                      <B
+                        disabled={running}
                         onClick={() =>
-                          setExpand({
-                            concept:
-                              study.concepts.find((c) => e.topic.includes(c.title)) || study.concepts[0],
-                            origin: `suggestion-${i}`,
-                            direction: e.topic,
-                            question: e.question,
-                          })
+                          setExpand((current) =>
+                            current?.origin === c.id
+                              ? null
+                              : { concept: c, origin: c.id, direction: '深入理解', question: '' },
+                          )
                         }
                       >
-                        <strong>{e.topic}</strong>
-                        <span>{e.question} ↗</span>
-                      </button>
-                      {expand?.origin === `suggestion-${i}` && (
-                        <ExpansionEditor
-                          expand={expand}
-                          setExpand={setExpand}
-                          models={models}
-                          route={route}
-                          chooseRoute={chooseRoute}
-                          running={running}
-                          busy={busy}
-                          onGenerate={() =>
-                            generate('expand', {
-                              parentSummaryId: summary.id,
-                              conceptId: expand.concept.id,
-                              direction: expand.direction,
-                              instructions: expand.question,
+                        拓展 ↗
+                      </B>
+                    </header>
+                    {expand?.origin === c.id && (
+                      <ExpansionEditor
+                        expand={expand}
+                        setExpand={setExpand}
+                        models={models}
+                        route={route}
+                        chooseRoute={chooseRoute}
+                        running={running}
+                        busy={busy}
+                        onGenerate={() =>
+                          generate('expand', {
+                            parentSummaryId: summary.id,
+                            conceptId: expand.concept.id,
+                            direction: expand.direction,
+                            instructions: expand.question,
+                          })
+                        }
+                        onOpen={(id) => {
+                          setActive(id);
+                          setExpand(null);
+                        }}
+                      />
+                    )}
+                    <AnnotatedText
+                      {...annotationProps}
+                      text={c.explanation}
+                      blockId={`concept:${c.id}:explanation`}
+                    />
+                    {c.example && (
+                      <section className="sb-example">
+                        <h4>案例与补充</h4>
+                        <AnnotatedText
+                          {...annotationProps}
+                          text={c.example}
+                          blockId={`concept:${c.id}:example`}
+                        />
+                      </section>
+                    )}
+                    {c.prerequisites.length > 0 && (
+                      <div className="sb-prerequisites">
+                        <span>相关基础</span>
+                        {c.prerequisites.map((p) => (
+                          <span key={p}>{p}</span>
+                        ))}
+                      </div>
+                    )}
+                    {study.diagrams
+                      .filter((d) => d.placement !== 'overview' && d.conceptIds[0] === c.id)
+                      .map(diagramBlock)}
+                    {(study.sourceFigures || []).filter((f) => f.conceptIds[0] === c.id).map(sourceBlock)}
+                    {infographicsEnabled && <InfographicRegion {...infographicProps} conceptId={c.id} />}
+                  </article>
+                ))}
+                {study.diagrams
+                  .filter((d) => d.placement !== 'overview' && !d.conceptIds.length)
+                  .map(diagramBlock)}
+                {(study.sourceFigures || []).filter((f) => !f.conceptIds.length).map(sourceBlock)}
+                {!!study.insights?.length && (
+                  <section className="sb-topic-insights">
+                    <h2>进一步理解</h2>
+                    {study.insights.map((item) => (
+                      <article key={item.id}>
+                        <h3>{item.title}</h3>
+                        <AnnotatedText {...annotationProps} text={item.text} blockId={'insight:' + item.id} />
+                      </article>
+                    ))}
+                  </section>
+                )}
+                {study.scopeNote && (
+                  <details className="sb-scope-note">
+                    <summary>材料范围与说明</summary>
+                    <AnnotatedText {...annotationProps} text={study.scopeNote} blockId="scopeNote" />
+                  </details>
+                )}
+                <Practice
+                  key={summary.id}
+                  questions={study.questions}
+                  concepts={study.concepts}
+                  initialQuestionId={
+                    initialBlockId?.startsWith('question:') ? initialBlockId.split(':')[1] : null
+                  }
+                  onFeedback={
+                    moduleUI.enabled('feedback')
+                      ? (question, answer) =>
+                          moduleUI.navigation.current.openFeature?.('feedback', {
+                            boardId: board.id,
+                            summaryId: summary.id,
+                            mode: 'question',
+                            questionId: question.id,
+                            answer,
+                          })
+                      : null
+                  }
+                  onEnroll={enroll}
+                  renderAnswer={(q) => (
+                    <AnnotatedText {...annotationProps} text={q.answer} blockId={`question:${q.id}:answer`} />
+                  )}
+                />
+                {!!study.extensions.length && (
+                  <section className="sb-extension-ideas">
+                    <h3>继续往下想</h3>
+                    {study.extensions.map((e, i) => (
+                      <div key={i}>
+                        <button
+                          onClick={() =>
+                            setExpand({
+                              concept:
+                                study.concepts.find((c) => e.topic.includes(c.title)) || study.concepts[0],
+                              origin: `suggestion-${i}`,
+                              direction: e.topic,
+                              question: e.question,
                             })
                           }
-                          onOpen={(id) => {
-                            setActive(id);
-                            setExpand(null);
-                          }}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </section>
-              )}
-            </>
-          )}
+                        >
+                          <strong>{e.topic}</strong>
+                          <span>{e.question} ↗</span>
+                        </button>
+                        {expand?.origin === `suggestion-${i}` && (
+                          <ExpansionEditor
+                            expand={expand}
+                            setExpand={setExpand}
+                            models={models}
+                            route={route}
+                            chooseRoute={chooseRoute}
+                            running={running}
+                            busy={busy}
+                            onGenerate={() =>
+                              generate('expand', {
+                                parentSummaryId: summary.id,
+                                conceptId: expand.concept.id,
+                                direction: expand.direction,
+                                instructions: expand.question,
+                              })
+                            }
+                            onOpen={(id) => {
+                              setActive(id);
+                              setExpand(null);
+                            }}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </section>
+                )}
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </aside>
   );
 }

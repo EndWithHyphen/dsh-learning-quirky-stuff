@@ -59,7 +59,7 @@ export function buildSummaryPrompt(board, r) {
       ? '本次关闭自动信息图。infographics 必须为空数组，visualDecision 留空。原有原图引用与简单示意图按内容需要选择。'
       : INFOGRAPHIC_INSTRUCTIONS;
   const visualSources = visualSourceSnapshot(board, r.elements, r.scope);
-  return `${SUMMARY_INSTRUCTIONS}\n\n${visuals}\n\n输出 JSON Schema：\n${JSON.stringify(STUDY_SCHEMA)}\n\n【提供的资料】\n${context}\n\n图文来源：${JSON.stringify(visualSources).slice(0, 45000)}\n\n【用户学习目标】\n${(r.instructions || '').slice(0, 2500) || '识别核心主题，串联主张、机制、人物或概念关系，提炼成简洁的图文专题。'}\n\n【本次复习要求】\n每次都生成 1～8 道真正值得长期复习的核心问题，最多 8 题；按材料需要取舍，不凑满。questions 不得为空数组。\n\n【配图识别】\n${r.images?.length ? '附图先是整张画布的分区预览，随后是带 S 编号的原图细节。原图索引位于 sourceImages。sourceFigures 与信息图图片只引用已有的 S 编号，不能将所有图片都加入正文。' : '本次没有提供原图，sourceFigures 必须为空数组，信息图不得使用 image 节点。'}`;
+  return `${SUMMARY_INSTRUCTIONS}\n\n${visuals}\n\n输出 JSON Schema：\n${JSON.stringify(STUDY_SCHEMA)}\n\n【提供的资料】\n${context}\n\n图文来源：${JSON.stringify(visualSources).slice(0, 45000)}\n\n【用户学习目标】\n${(r.instructions || '').slice(0, 2500) || '围绕材料主题，整理重点及其联系，选择有助于理解的图文表达。'}\n\n【配图识别】\n${r.images?.length ? '附图先是整张画布的分区预览，随后是带 S 编号的原图细节。原图索引位于 sourceImages，sourceFigures 与信息图图片从中选择相关的 S 编号。' : '本次没有提供原图，sourceFigures 必须为空数组，信息图不得使用 image 节点。'}`;
 }
 export class SummaryJobs {
   constructor(ctx, store, { timeoutMs = 1800000, infographicsEnabled = () => true } = {}) {

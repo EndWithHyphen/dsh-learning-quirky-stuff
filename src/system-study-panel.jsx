@@ -21,8 +21,6 @@ export default function SystemStudyPanel({
   chooseRoute,
   reloadModels,
   onGenerate,
-  onClose,
-  onSwitch,
   onError,
   onToast,
   initialReportId,
@@ -132,20 +130,8 @@ export default function SystemStudyPanel({
     available = value && !report.unavailable;
   if (!learning.enabled('systemStudy')) return null;
   return (
-    <aside className="sb-summary sb-study-panel sb-study-expanded sb-system-panel">
+    <div className="sb-system-content">
       <style>{css}</style>
-      <header>
-        <h2>AI总结</h2>
-        <button className="sb-icon" aria-label="关闭系统学习" onClick={onClose}>
-          ×
-        </button>
-      </header>
-      <nav className="sb-system-tabs" aria-label="学习模式">
-        <Action onClick={onSwitch}>材料总结</Action>
-        <Action primary aria-current="page">
-          系统学习
-        </Action>
-      </nav>
       <div className="sb-study-scroll">
         <div className="sb-system-inner">
           <div className="sb-system-topbar">
@@ -364,6 +350,6 @@ export default function SystemStudyPanel({
           )}
         </div>
       </div>
-    </aside>
+    </div>
   );
 }

@@ -27,6 +27,8 @@
   text-decoration: none;
 }
 .sb-study-panel {
+  position: relative;
+  z-index: 80;
   width: 440px;
   min-width: 0;
 }
@@ -44,7 +46,7 @@
   position: absolute;
   inset: 0;
   width: 100%;
-  z-index: 15;
+  z-index: 80;
   border-left: 0;
 }
 .sb-study-scroll {
@@ -392,7 +394,7 @@
   display: block;
   width: 100%;
   height: auto;
-  max-height: 700px;
+  margin: 0 auto;
 }
 .sb-diagram-details p {
   font-size: 11px;
@@ -1049,7 +1051,7 @@
     inset: 0;
     width: 100%;
     max-width: 100%;
-    z-index: 15;
+    z-index: 80;
   }
   .sb-study-expanded .sb-study-inner {
     padding: 20px 24px 70px;
@@ -1643,9 +1645,6 @@
 .sb-diagram-section {
   margin: 24px 0;
 }
-.sb-study-diagram svg {
-  max-height: none;
-}
 .sb-concept .sb-diagram-section {
   margin-top: 20px;
 }
@@ -2050,4 +2049,26 @@
 .sb-capabilities h2 {
   font-size: 15px;
   margin: 0 0 8px;
+}
+
+.sb-study-panel > header {
+  flex-shrink: 0;
+  min-height: 56px;
+}
+.sb-study-mode-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--sb-line);
+  flex: 0 0 auto;
+}
+.sb-study-mode-tabs .sb-button {
+  min-height: 34px;
+  font-size: 12px;
+  padding: 7px 12px;
+}
+.sb-study-loading {
+  padding: 20px;
+  color: var(--sb-muted);
 }

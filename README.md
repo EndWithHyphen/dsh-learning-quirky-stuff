@@ -4,7 +4,7 @@
 
 Studyboard is a local learning workspace for DeepSeek Harness: handwritten notes, screenshots, structured AI summaries, editable infographics, source-linked knowledge graphs and spaced review.
 
-- **PDF 阅读与笔记（4.5.2 开发版）**：在笔记中导入或关联 PDF，选文划线、手写批注、截取公式与图表到画布、向 AI 提问，并从摘录回到原页。同一原件可供多篇笔记引用。
+- **PDF 阅读与笔记（4.5.3 开发版）**：在笔记中导入或关联 PDF，选文划线、手写批注、截取公式与图表到画布、向 AI 提问，并从摘录回到原页。同一原件可供多篇笔记引用。
 - **自由白板**：触控笔、图片、形状、箭头、文字、自动保存、PDF 导出。
 - **结构化记录**：提问卡、编号知识点、对比卡、步骤卡、图片备注；选定区域后自动排版，双击卡片编辑。
 - **组件提问与备注**：选中文字、图片或一组组件向模型提问，继续追问或留下自己的备注。讨论标记跟随组件，支持已解决、重新打开和来源变化提示。
@@ -24,7 +24,7 @@ Studyboard is a local learning workspace for DeepSeek Harness: handwritten notes
 
 已发布版本 **4.4.2** 适配 DSH **0.2.2-rc.1**。macOS 13+ 为完整功能的首批验证平台；发布包附带 Apple Silicon / Intel 本机识别程序。Linux、Windows 的通用功能可运行，但尚未完成完整平台验收，图片识别与本机 PDF 提取会明确提示不支持。
 
-4.4.2 修复组件提问、自动换行、回答 Markdown 和重试状态，并支持删除备注草稿。主分支正在开发 **4.5.2** 的 PDF 阅读与笔记功能；npm 与插件市场目前仍提供 4.4.2。
+4.4.2 修复组件提问、自动换行、回答 Markdown 和重试状态，并支持删除备注草稿。主分支正在开发 **4.5.3** 的 PDF 阅读与笔记功能；npm 与插件市场目前仍提供 4.4.2。
 
 
 桌面版通过 DSH「插件」页面添加 npm 包 `dsh-learning-quirky-stuff@4.4.2`。离线安装可从 [Releases](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases) 下载 `.tgz`，解压后选择 `package` 目录。`desktop` profile 由 Electron 应用管理，CLI 不允许直接修改。
@@ -63,7 +63,7 @@ Chrome 配套为 [Release 中的独立 ZIP](https://github.com/EndWithHyphen/dsh
 
 上面三张截图使用同一份合成演示材料，展示实际插件界面，不包含个人笔记。分类、标签和各项学习模块可按自己的习惯配置；系统学习、专题工作台与周报的完整操作见[使用说明](docs/user-guide.html)。
 
-## PDF 与笔记统一管理（4.5.2 开发版）
+## PDF 与笔记统一管理（4.5.3 开发版）
 
 在笔记列表点击「导入 PDF」建立笔记，或在已有笔记顶部点击「PDF」导入、关联已有文件。左侧读原文，右侧整理画布，分类、标签与回收站沿用笔记体系。
 

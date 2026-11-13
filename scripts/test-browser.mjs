@@ -225,6 +225,16 @@ try {
   await panel.goto('chrome-extension://' + id + '/sidepanel.html?tabId=' + tab.id);
   await panel.locator('#canvas-loading').waitFor({ state: 'hidden' });
   await panel.waitForFunction(() => window.__qaCanvas);
+  assert.equal(await panel.evaluate(() => window.__qaCanvas.getAppState().activeTool.type), 'selection');
+  const blank = await panel.locator('.excalidraw').boundingBox();
+  await panel.mouse.click(blank.x + blank.width * 0.6, blank.y + 150);
+  assert.equal(
+    await panel.evaluate(
+      () => window.__qaCanvas.getSceneElements().filter((e) => e.type === 'freedraw').length,
+    ),
+    0,
+    'Clicking an empty canvas must not add an accidental ink dot',
+  );
   await panel.getByRole('button', { name: '专注画布', exact: true }).click();
   await panel.locator('#focus-learning').click();
   await panel.getByRole('button', { name: /^知识点/ }).click();

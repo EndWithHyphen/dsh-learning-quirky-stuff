@@ -117,7 +117,7 @@ test('每次总结自动保留复习题，旧客户端关闭选项也不生效�
   assert.equal(jobs.get(j.id).summary.study.questions.length, 1);
   const record = JSON.parse(await readFile(join(store.root, 'summary-inputs', j.id + '.json'), 'utf8'));
   assert.equal(record.includeReview, true);
-  assert.match(calls[0].messages[0].content[0].text, /每次都生成 1～8/);
+  assert.match(calls[0].messages[0].content[0].text, /生成 1～8 道复习题/);
   const study = {
     ...studyFixture,
     questions: Array.from({ length: 12 }, (_, i) => ({

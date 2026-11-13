@@ -1630,7 +1630,12 @@ const Board = React.forwardRef(function Board(
                 }}
                 initialData={{
                   ...initial,
-                  appState: { ...initial.appState, currentItemFontFamily: 2, theme: dark ? 'dark' : 'light' },
+                  appState: {
+                    ...initial.appState,
+                    currentItemFontFamily: 2,
+                    theme: dark ? 'dark' : 'light',
+                    activeTool: { type: 'selection', customType: null, locked: false, lastActiveTool: null },
+                  },
                   scrollToContent: true,
                 }}
                 onChange={change}
