@@ -123,6 +123,40 @@
   color: #fff;
   border-color: transparent;
 }
+.study-widget-mask.study-quote-mask {
+  background: var(--sb-panel, #f4f6f4);
+}
+.study-quote-position {
+  color: var(--sb-muted, #647367);
+  font-size: 13px;
+}
+.study-widget-dialog .study-quote-source {
+  color: inherit;
+  font-size: 16px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 6px 0 0;
+}
+.study-quote-passage {
+  margin-top: 16px;
+  padding: 16px;
+  border-inline-start: 3px solid #71927a;
+  background: var(--sb-panel, #f4f6f4);
+  border-radius: 4px;
+}
+.study-quote-passage p,
+.study-quote-passage blockquote {
+  margin: 0;
+}
+.study-quote-passage blockquote {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 18px;
+  line-height: 1.65;
+}
+.study-quote-mask footer {
+  flex-wrap: wrap;
+}
 .study-widget-error {
   color: #ac463c;
   font-size: 12px;

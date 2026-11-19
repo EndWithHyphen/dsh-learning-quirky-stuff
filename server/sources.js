@@ -438,9 +438,11 @@ export class SourceRepository {
         );
       if (!available.get(card.id)) continue;
       const grade = { 1: '忘记', 2: '困难', 3: '记得', 4: '轻松' }[event.grade] || '未记录';
+      const prompt = event.quote?.prompt ?? card.question;
+      const referenceAnswer = event.quote?.text ?? card.answer;
       const text = [
-        '问题：' + card.question,
-        '参考答案（来自已保存复习卡）：' + card.answer,
+        '问题：' + prompt,
+        '参考答案（来自已保存复习卡）：' + referenceAnswer,
         event.answer ? '我的作答：' + event.answer : '本次没有保存文字作答',
         '复习自评：' + grade,
       ].join('\n');
@@ -452,16 +454,16 @@ export class SourceRepository {
         boardId: card.boardId || null,
         materialId: null,
         summaryId: card.summaryId || null,
-        title: card.question,
+        title: prompt,
         boardTitle: card.boardTitle,
         kind: 'review',
-        referenceAnswer: card.answer,
+        referenceAnswer,
         text,
-        hash: digest([event, card.answer]),
+        hash: digest([event, referenceAnswer]),
         url: null,
         locator: {
-          elementIds: [],
-          blockId: card.questionId ? 'question:' + card.questionId + ':answer' : null,
+          elementIds: card.quoteElementId ? [card.quoteElementId] : [],
+          blockId: !card.quoteElementId && card.questionId ? 'question:' + card.questionId + ':answer' : null,
           seconds: null,
         },
       });

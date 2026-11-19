@@ -144,6 +144,95 @@ test('FSRS 复习反馈推进到期时间，重复提交不重复记一次，重
   assert.equal(reopened.data.reviews.length, 1);
   assert.equal((await reopened.preview({ cardId: c.id })).length, 4);
 });
+test('保存的金句自动加入间隔复习，编辑、重试、删除和恢复沿用同一份进度', async () => {
+  const store = await new LibraryStore(await mkdtemp(join(tmpdir(), 'study-quote-fsrs-'))).init();
+  const board = await store.create({ title: '读书手记', source: { url: 'https://example.com/reading' } });
+  const original = '  原句，“保留标点”。\r\n\r\n\tKeep  both spaces.  ';
+  const owner = {
+    id: 'card-a',
+    type: 'rectangle',
+    x: 0,
+    y: 0,
+    groupIds: ['group-a'],
+    customData: {
+      studyboard: {
+        widget: 'quote',
+        role: 'background',
+        widgetId: 'card-a',
+        groupId: 'group-a',
+        values: { text: original, source: '手记' },
+      },
+    },
+  };
+  const scene = { ...board.scene, elements: [owner] };
+  const chromeSave = {
+    action: 'saveWebCanvas',
+    id: board.id,
+    url: board.source.url,
+    baseRevision: 0,
+    requestId: 'quote-save-01',
+    scene,
+  };
+  await store.dispatch(chromeSave);
+  await store.dispatch(chromeSave);
+  const learning = await new LearningStore(store).init();
+  const [first, second] = await Promise.all([learning.dashboard(), learning.dashboard()]);
+  assert.equal(first.dueCount, 1);
+  assert.equal(second.cards[0].id, first.cards[0].id);
+  const card = first.cards[0];
+  assert.equal(card.answer, original);
+  assert.equal(card.question, '手记');
+  assert.equal(card.quoteElementId, owner.id);
+  const grade = {
+    cardId: card.id,
+    version: card.version,
+    eventId: 'quote-remembered',
+    grade: 3,
+    answer: original,
+  };
+  const graded = await learning.review(grade);
+  assert.equal((await learning.review(grade)).duplicate, true);
+  assert.equal(graded.card.lastAnswer, original);
+  assert.equal((await learning.dashboard()).dueCount, 0);
+  const revised = '\t已修订。  ';
+  const body = {
+    id: 'body',
+    type: 'text',
+    x: 10,
+    y: 10,
+    groupIds: ['group-a'],
+    text: revised,
+    originalText: revised,
+    customData: { studyboard: { widgetId: owner.id, field: 'text', renderedText: '旧排版' } },
+  };
+  await store.save({ id: board.id, baseRevision: 1, scene: { ...scene, elements: [owner, body] } });
+  await assert.rejects(
+    learning.review({ ...grade, eventId: 'stale-quote', version: graded.card.version }),
+    /修改/,
+  );
+  const backup = await learning.dispatch({ action: 'backup' });
+  assert.equal(backup.learning.cards[card.id].answer, revised);
+  assert.deepEqual(backup.learning.cards[card.id].schedule, graded.card.schedule);
+  assert.equal(backup.learning.reviews[0].quote.text, original);
+  const reopened = await new LearningStore(store).init();
+  await reopened.suspendReview({ cardId: card.id, suspended: true });
+  await store.save({
+    id: board.id,
+    baseRevision: 2,
+    scene: { ...scene, elements: [{ ...owner, isDeleted: true }, body] },
+  });
+  assert.equal((await reopened.dashboard()).suspended.length, 0);
+  await assert.rejects(reopened.preview({ cardId: card.id }), /已移除/);
+  await store.save({ id: board.id, baseRevision: 3, scene });
+  assert.equal((await reopened.dashboard()).suspended[0].id, card.id);
+  await reopened.suspendReview({ cardId: card.id, suspended: false });
+  assert.equal((await reopened.dashboard()).total, 1);
+  await store.metadata({ id: board.id, deleted: true });
+  assert.equal((await reopened.dashboard()).total, 0);
+  await reopened.purge({ ids: [board.id], confirm: true });
+  assert.equal(reopened.data.cards[card.id], undefined);
+  assert.equal(reopened.data.reviews.length, 0);
+});
 test('知识图连接不同笔记和历次总结，保留每个来源及手动关系', async () => {
   const { store, learning, board, summary } = await setup();
   const b = await store.create({ title: '笔记 B' });

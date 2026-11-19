@@ -6,9 +6,11 @@ import { atomicWrite, text } from './core.js';
 import { legacyStudy, blockTexts, conceptKey } from './study-schema.js';
 import { purgeNotes, resumePurges } from './trash.js';
 import { buildGraphInput, currentGraph, graphReferenceSources } from './graph-data.js';
+import { canvasQuotes } from './shared/canvas-quotes.js';
 
 const now = () => new Date().toISOString();
 const hash = (s) => createHash('sha256').update(s).digest('hex').slice(0, 20);
+const quotePrompt = (quote) => (quote.source.trim() ? quote.source : '请背诵这段原文');
 export class LearningStore {
   constructor(store) {
     this.store = store;
@@ -192,7 +194,54 @@ export class LearningStore {
       return { added: 1, card: this.data.cards[id] };
     });
   }
+  // The saved scene is authoritative, including for Chrome saves, undo, and existing notes.
+  // Call inside store.serial so a refresh cannot overwrite a concurrent grade or suspension.
+  async syncQuoteCards(boards) {
+    const live = new Set(),
+      changes = {},
+      date = new Date();
+    for (const board of boards) {
+      if (board.deletedAt) continue;
+      for (const quote of canvasQuotes(board.scene.elements)) {
+        const id = hash(`${board.id}/canvas-quote/${quote.id}`);
+        live.add(id);
+        const prior = this.data.cards[id],
+          question = quotePrompt(quote);
+        if (prior?.answer === quote.text && prior.question === question) continue;
+        changes[id] = {
+          ...(prior || {
+            id,
+            boardId: board.id,
+            boardTitle: board.title,
+            summaryId: null,
+            quoteElementId: quote.id,
+            questionId: 'quote:' + quote.id,
+            kind: 'quote',
+            conceptIds: [],
+            createdAt: date.toISOString(),
+            suspended: false,
+            schedule: this.scheduler.newCard({ now: date }),
+          }),
+          question,
+          answer: quote.text,
+          version: prior ? prior.version + 1 : 0,
+        };
+      }
+    }
+    if (Object.keys(changes).length)
+      await this.commit({ ...this.data, cards: { ...this.data.cards, ...changes } });
+    return live;
+  }
   async validateCardSource(card) {
+    if (card.quoteElementId) {
+      const board = await this.store.read(card.boardId);
+      const quote =
+        !board.deletedAt && canvasQuotes(board.scene.elements).find((q) => q.id === card.quoteElementId);
+      if (!quote) throw new Error('这条金句摘录已移除，请刷新复习列表');
+      if (quote.text !== card.answer || quotePrompt(quote) !== card.question)
+        throw new Error('金句原文或提示已修改，请刷新后核对最新摘录');
+      return;
+    }
     if (card.origin && this.externalCardAvailable) {
       if (!(await this.externalCardAvailable(card))) throw new Error('复习来源已删除或不可用');
       return;
@@ -212,21 +261,28 @@ export class LearningStore {
     return c;
   }
   async dashboard() {
-    const { boards } = await this.store.all();
-    const active = new Map(boards.filter((b) => !b.deletedAt).map((b) => [b.id, b]));
+    const { active, quotes } = await this.store.serial(async () => {
+      const { boards } = await this.store.all();
+      return {
+        active: new Map(boards.filter((b) => !b.deletedAt).map((b) => [b.id, b])),
+        quotes: await this.syncQuoteCards(boards),
+      };
+    });
     const external = new Map();
     for (const card of Object.values(this.data.cards))
       if (card.origin && this.externalCardAvailable)
         external.set(card.id, await this.externalCardAvailable(card).catch(() => false));
     const hasSource = (c) =>
-      external.has(c.id)
-        ? external.get(c.id)
-        : [{ boardId: c.boardId, summaryId: c.summaryId }, ...(c.sourceRefs || [])].every(
-            (ref) =>
-              active.has(ref.boardId) &&
-              (!ref.summaryId ||
-                active.get(ref.boardId).summaries.some((s) => s.id === ref.summaryId && !s.deletedAt)),
-          );
+      c.quoteElementId
+        ? quotes.has(c.id)
+        : external.has(c.id)
+          ? external.get(c.id)
+          : [{ boardId: c.boardId, summaryId: c.summaryId }, ...(c.sourceRefs || [])].every(
+              (ref) =>
+                active.has(ref.boardId) &&
+                (!ref.summaryId ||
+                  active.get(ref.boardId).summaries.some((s) => s.id === ref.summaryId && !s.deletedAt)),
+            );
     const cards = Object.values(this.data.cards).filter((c) => !c.suspended && hasSource(c));
     const date = new Date();
     const due = cards
@@ -284,12 +340,16 @@ export class LearningStore {
         throw new Error('请选择掌握程度');
       const date = new Date(),
         result = this.scheduler.review({ card: this.cardDates(current.schedule), grade: r.grade, now: date }),
-        next = structuredClone(this.data);
+        next = structuredClone(this.data),
+        answer =
+          current.quoteElementId && typeof r.answer === 'string'
+            ? r.answer.slice(0, 8000)
+            : text(r.answer, '', 8000);
       next.cards[r.cardId] = {
         ...current,
         version: current.version + 1,
         schedule: result.card,
-        lastAnswer: text(r.answer, '', 8000),
+        lastAnswer: answer,
         lastReviewedAt: date.toISOString(),
       };
       next.reviews.push({
@@ -297,7 +357,8 @@ export class LearningStore {
         cardId: r.cardId,
         at: date.toISOString(),
         grade: r.grade,
-        answer: text(r.answer, '', 8000),
+        answer,
+        ...(current.quoteElementId ? { quote: { prompt: current.question, text: current.answer } } : {}),
         revlog: result.revlog,
       });
       await this.commit(next);
@@ -438,7 +499,11 @@ export class LearningStore {
       case 'graphSettings':
         return this.graphSettings(r);
       case 'backup':
-        return { ...(await this.store.backup()), learning: structuredClone(this.data) };
+        return this.store.serial(async () => {
+          const backup = await this.store.backup();
+          await this.syncQuoteCards(backup.boards);
+          return { ...backup, learning: structuredClone(this.data) };
+        });
       case 'annotate':
         return this.annotation(r);
       case 'enroll':

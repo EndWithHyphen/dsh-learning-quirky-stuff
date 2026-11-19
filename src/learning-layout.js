@@ -7,6 +7,14 @@ export const LEARNING_TYPES = {
       ['answer', '参考答案（可留空）', false, 6],
     ],
   },
+  quote: {
+    name: '金句摘录',
+    hint: '摘下原文，在画布里背诵',
+    fields: [
+      ['text', '原文', true, 6],
+      ['source', '出处或背诵提示（选填）', false, 1],
+    ],
+  },
   concept: {
     name: '知识点',
     hint: '按 1、2、3 组织多个知识点',
@@ -83,8 +91,15 @@ export function layoutLearningCard(
     bodyWidth = width - 2 * pad,
     items = [];
   const text = (role, field, value, x, y, w, font = 17, color = '#24382c') => {
+    const verbatim = kind === 'quote' && field != null;
+    // Excalidraw expands tabs when drawing. Measure what it draws and keep the source for recall.
+    const display = verbatim
+      ? String(value ?? '')
+          .replace(/\r\n?/g, '\n')
+          .replace(/\t/g, ' '.repeat(8))
+      : value;
     const size = font * scale,
-      wrapped = wrapLearningText(value, w, size, measure),
+      wrapped = wrapLearningText(display, w, size, measure),
       height = Math.max(1, wrapped.split('\n').length) * size * 1.35;
     items.push({
       role,
@@ -95,6 +110,7 @@ export function layoutLearningCard(
       width: w,
       height,
       text: wrapped,
+      ...(verbatim ? { originalText: value } : {}),
       fontSize: size,
       fontFamily: 2,
       lineHeight: 1.35,
@@ -125,6 +141,10 @@ export function layoutLearningCard(
     y += text('question', 'question', values.question, pad, y, bodyWidth, 21) + gap;
     y += text('answer-label', null, '参考答案', pad, y, bodyWidth, 12, '#718276') + 6 * scale;
     y += values.answer ? text('answer', 'answer', values.answer, pad, y, bodyWidth) : 68 * scale;
+  } else if (kind === 'quote') {
+    y += text('passage', 'text', values.text, pad, y, bodyWidth, 20);
+    if (values.source)
+      y += gap + text('source', 'source', values.source, pad, y + gap, bodyWidth, 14, '#65746a');
   } else if (kind === 'concept') {
     const points = normalizeConcept(values);
     if (points.items.length > 20) throw new Error('每张卡片最多 20 个知识点');

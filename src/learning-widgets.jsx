@@ -11,7 +11,10 @@ import {
   ownedCardElements as owned,
   readCardValues as currentValues,
   cardAtPoint,
+  isQuoteCard,
+  quoteFromSelection,
 } from './learning-card-data.js';
+import QuotePractice from './quote-practice.jsx';
 import { focusCanvas, isEditingCanvasText } from './canvas-shortcuts.js';
 const meta = (e) => e?.customData?.studyboard || {};
 const live = (elements) => elements.filter((e) => !e.isDeleted);
@@ -42,6 +45,7 @@ function selected(api) {
 export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError }, ref) {
   const [menu, setMenu] = useState(false),
     [form, setForm] = useState(null),
+    [practiceId, setPracticeId] = useState(null),
     [placement, setPlacement] = useState(null),
     [drag, setDrag] = useState(null),
     [error, setError] = useState(''),
@@ -118,6 +122,10 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
     const values = Object.fromEntries(
       LEARNING_TYPES[kind].fields.map(([key]) => [key, drafts.current[kind]?.[key] || '']),
     );
+    if (kind === 'quote' && !values.text && api()) {
+      const picked = quoteFromSelection(api().getSceneElements(), api().getAppState().selectedElementIds);
+      if (picked) Object.assign(values, picked);
+    }
     if (kind === 'concept')
       values.items =
         drafts.current[kind]?.items ||
@@ -148,7 +156,7 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
     });
   }
   const interaction = useRef({});
-  interaction.current = { form, menu, placement, editCard };
+  interaction.current = { form, menu, placement, practiceId, editCard };
   useEffect(() => {
     const element = root();
     if (!element) return;
@@ -164,6 +172,7 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
         current.form ||
         current.menu ||
         current.placement ||
+        current.practiceId ||
         event.isComposing ||
         isEditingCanvasText(event.target) ||
         event.target.closest?.('[role="dialog"]')
@@ -204,6 +213,7 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
     open,
     openMenu: () => {
       setChoice(selected(api()));
+      setPracticeId(null);
       setMenu(true);
     },
     editImage,
@@ -215,6 +225,7 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
     if (form && !form.ownerId && !form.imageId) drafts.current[form.kind] = form.values;
     setForm(null);
     setMenu(false);
+    setPracticeId(null);
     setError('');
     focusCanvas(root());
   }
@@ -339,7 +350,14 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
     );
     reveal(created);
     drafts.current[formData.kind] = null;
-    api().setToast({ message: owner ? '卡片已更新并重新排版' : '已按所选区域自动排版' });
+    api().setToast({
+      message:
+        formData.kind === 'quote'
+          ? '摘录保存后会同步到「今日复习」'
+          : owner
+            ? '卡片已更新并重新排版'
+            : '已按所选区域自动排版',
+    });
   }
   function saveImageNote() {
     const all = api().getSceneElementsIncludingDeleted(),
@@ -434,6 +452,8 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
         ([key, , required]) => required && !String(form.values[key] || '').trim(),
       );
       if (missing) throw new Error('请填写' + missing[1]);
+      if (form.kind === 'quote' && form.values.text.length > 6000)
+        throw new Error('单条摘录最多 6000 个字符，请拆成多张卡片。');
       if (form.kind === 'steps' && form.values.steps.split('\n').filter((v) => v.trim()).length > 20)
         throw new Error('每张步骤卡最多 20 步，请分成多张卡片');
       if (form.ownerId) {
@@ -502,6 +522,14 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
     }
   }
   const placementTarget = root()?.querySelector('.canvas-engine') || root();
+  const quotes = menu ? (api()?.getSceneElements() || []).filter(isQuoteCard) : [];
+  const dialogTitle = menu
+    ? '学习控件'
+    : practiceId
+      ? '背诵摘录'
+      : form?.kind === 'image-note'
+        ? '图片备注'
+        : LEARNING_TYPES[form?.kind]?.name;
   const fields =
     form?.kind === 'image-note'
       ? [['note', '图片备注（清空可移除）', false, 7]]
@@ -510,15 +538,16 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
         : [];
   return (
     <>
-      {(menu || form) && (
-        <div className="study-widget-mask" onMouseDown={(e) => e.target === e.currentTarget && close()}>
+      {(menu || form || practiceId) && (
+        <div
+          className={'study-widget-mask' + (practiceId ? ' study-quote-mask' : '')}
+          onMouseDown={(e) => e.target === e.currentTarget && close()}
+        >
           <section
             className="study-widget-dialog"
             role="dialog"
             aria-modal="true"
-            aria-label={
-              menu ? '学习控件' : form.kind === 'image-note' ? '图片备注' : LEARNING_TYPES[form.kind].name
-            }
+            aria-label={dialogTitle}
             ref={dialog}
             onKeyDown={(e) => {
               if (e.key === 'Escape' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -539,14 +568,14 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
             }}
           >
             <header>
-              <h2>
-                {menu ? '学习控件' : form.kind === 'image-note' ? '图片备注' : LEARNING_TYPES[form.kind].name}
-              </h2>
-              <button aria-label="关闭学习控件" onClick={close}>
+              <h2>{dialogTitle}</h2>
+              <button aria-label={practiceId ? '关闭背诵' : '关闭学习控件'} onClick={close}>
                 ×
               </button>
             </header>
-            {menu ? (
+            {practiceId ? (
+              <QuotePractice api={api()} startId={practiceId} onClose={close} />
+            ) : menu ? (
               <>
                 <div className="study-widget-choices">
                   {Object.entries(LEARNING_TYPES).map(([kind, item]) => (
@@ -563,12 +592,28 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
                     <strong>编辑选中卡片</strong>
                     <span>修改内容并重新排版</span>
                   </button>
+                  {quotes.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setPracticeId(
+                          quotes.find((card) => card.id === choice.widget?.id)?.id || quotes[0].id,
+                        );
+                        setMenu(false);
+                      }}
+                    >
+                      <strong>背诵摘录</strong>
+                      <span>复习这张画布上的 {quotes.length} 条原文</span>
+                    </button>
+                  )}
                 </div>
                 <p>填写后拖选摆放区域，松开即可自动排版。内容较多时会自动向下展开，并避开已有内容。</p>
               </>
             ) : (
               <>
                 <div className={'study-widget-fields ' + (form.kind === 'comparison' ? 'is-comparison' : '')}>
+                  {form.kind === 'quote' && (
+                    <p className="study-points-hint">保存后自动加入「今日复习」，按原文背诵。</p>
+                  )}
                   {form.kind === 'concept' && (
                     <p className="study-points-hint">
                       知识点自动按顺序编号；空项会忽略。双击卡片即可再次编辑。
@@ -589,7 +634,7 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
                       ) : (
                         <textarea
                           rows={rows}
-                          maxLength={6000}
+                          maxLength={form.kind === 'quote' ? undefined : 6000}
                           value={form.values[key] || ''}
                           onChange={(e) =>
                             setForm({ ...form, values: { ...form.values, [key]: e.target.value } })

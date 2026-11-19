@@ -327,7 +327,7 @@ function StudyShell({ api, t }) {
       clearInterval(timer);
       window.removeEventListener('focus', check);
     };
-  }, [api]);
+  }, [api, board?.id]);
   const fail = (e) => setError(e.message || String(e));
   const refresh = useCallback(async () => {
     const l = await api('execute', { action: 'library' });

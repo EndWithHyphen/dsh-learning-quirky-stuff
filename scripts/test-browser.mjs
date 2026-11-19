@@ -11,6 +11,7 @@ import { LearningRuntime } from '../server/runtime.js';
 import { CaptureServer } from '../capture-server.js';
 import { excalidrawChinese } from './excalidraw-locale.mjs';
 import { excalidrawCancellation } from './excalidraw-cancellation.mjs';
+import { checkQuotePractice } from '../tests/browser/quote-practice.mjs';
 const root = resolve('.'),
   temp = await mkdtemp(join(tmpdir(), 'studyboard-browser-')),
   extension = join(temp, 'extension');
@@ -542,6 +543,7 @@ try {
   }
   await mkdir('dist/qa', { recursive: true });
   await panel.screenshot({ path: 'dist/qa/browser-smoke.png' });
+  await checkQuotePractice(panel, dsh, oldNote.title, oldText);
   await dsh.getByRole('button', { name: '断开此连接', exact: true }).click();
   await dsh.getByText('尚未连接浏览器。', { exact: true }).waitFor();
   assert.equal(bridge.info().clients.length, 0);
@@ -553,6 +555,7 @@ try {
       tabScopedSidePanel: true,
       revoke: true,
       canvasCreateEditSaveReload: true,
+      verbatimQuotePractice: true,
       toolbarOutsideCanvas: true,
       libraryAligned: true,
       longTextWrapPersists: true,

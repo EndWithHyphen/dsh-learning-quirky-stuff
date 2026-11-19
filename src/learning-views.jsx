@@ -64,6 +64,7 @@ export function ReviewView({ api, onError, onOpen, onChanged }) {
       await reload();
     } catch (e) {
       onError(e);
+      if (card.quoteElementId) await reload();
     } finally {
       setBusy(false);
     }
@@ -208,10 +209,14 @@ export function ReviewView({ api, onError, onOpen, onChanged }) {
                     ? moduleUI.navigation.current.openFeature?.(card.origin.feature, {
                         reportId: card.origin.id,
                       })
-                    : onOpen(card.boardId, card.summaryId)
+                    : onOpen(
+                        card.boardId,
+                        card.summaryId,
+                        card.quoteElementId ? { elementIds: [card.quoteElementId] } : undefined,
+                      )
                 }
               >
-                {card.origin ? '回到整理结果 ↗' : '回到原笔记 ↗'}
+                {card.origin ? '回到整理结果 ↗' : card.quoteElementId ? '回到画布摘录 ↗' : '回到原笔记 ↗'}
               </button>
             </div>
             <QuestionCard
@@ -277,11 +282,11 @@ export function ReviewView({ api, onError, onOpen, onChanged }) {
       ) : (
         <div className="sb-review-complete">
           <span>✓</span>
-          <h2>{data.total ? '这一轮完成了' : '从一张自测卡开始'}</h2>
+          <h2>{data.total ? '这一轮完成了' : '还没有复习卡片'}</h2>
           <p>
             {data.total
               ? '新的到期任务会在这里出现。'
-              : '在AI总结中点击「加入复习」，知识会按掌握程度重新出现。'}
+              : '在画布保存一张「金句摘录」，或把自测题加入复习，就可以从这里开始。'}
           </p>
           {skip.size > 0 && (
             <B

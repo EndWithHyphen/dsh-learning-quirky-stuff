@@ -1,16 +1,20 @@
 import { normalizeConcept } from './learning-layout.js';
-export const widgetMeta = (element) => element?.customData?.studyboard || {};
-export function ownedCardElements(owner, elements) {
-  const data = widgetMeta(owner),
-    group = owner.groupIds?.find((id) => id === data.groupId) || owner.groupIds?.[0];
-  return elements.filter(
-    (e) =>
-      e.id === owner.id ||
-      (group && e.groupIds?.includes(group) && widgetMeta(e).widgetId === (data.widgetId || owner.id)) ||
-      (data.widget === 'concept' && e.type === 'text' && e.containerId === owner.id),
+import { widgetMeta, ownedCardElements, isQuoteCard, readQuoteValues } from '../shared/canvas-quotes.js';
+export { widgetMeta, ownedCardElements, isQuoteCard };
+export function quoteFromSelection(elements, selectedIds) {
+  const texts = elements.filter(
+    (e) => selectedIds[e.id] && !e.isDeleted && e.type === 'text' && widgetMeta(e).role !== 'pdf-source',
   );
+  if (texts.length !== 1) return null;
+  const [element] = texts;
+  const reference = widgetMeta(element).pdfSource;
+  return {
+    text: element.originalText ?? element.text,
+    source: reference?.title && reference.page ? `${reference.title} · 第 ${reference.page} 页` : '',
+  };
 }
 export function readCardValues(owner, elements) {
+  if (isQuoteCard(owner)) return readQuoteValues(owner, elements);
   const data = widgetMeta(owner),
     values = structuredClone(data.values || {}),
     steps = String(values.steps || '')

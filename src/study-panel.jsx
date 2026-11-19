@@ -318,6 +318,7 @@ export function QuestionCard({
   const [answer, setAnswer] = useState(''),
     [revealed, setRevealed] = useState(initialReveal),
     [hint, setHint] = useState(false);
+  const quote = question.kind === 'quote';
   useEffect(() => {
     if (initialReveal) setRevealed(true);
   }, [initialReveal]);
@@ -325,7 +326,9 @@ export function QuestionCard({
     <div className="sb-question-card">
       <div className="sb-question-kind">
         <span>
-          {{ recall: '主动回忆', apply: '应用练习', explain: '用自己的话讲清楚' }[question.kind] || '自测'}
+          {{ recall: '主动回忆', apply: '应用练习', explain: '用自己的话讲清楚', quote: '金句背诵' }[
+            question.kind
+          ] || '自测'}
         </span>
         {question.difficulty && (
           <span className="sb-question-level">
@@ -351,12 +354,14 @@ export function QuestionCard({
         </section>
       )}
       <label className="sb-question-response">
-        我的回答
+        {quote ? '默写（选填）' : '我的回答'}
         <textarea
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
-          placeholder="先尝试自己回答，再揭晓答案。也可以在心里作答。"
-          aria-label="我的回答"
+          placeholder={
+            quote ? '先背一遍，也可以在这里默写。' : '先尝试自己回答，再揭晓答案。也可以在心里作答。'
+          }
+          aria-label={quote ? '默写原文' : '我的回答'}
           maxLength={8000}
         />
       </label>
@@ -364,7 +369,7 @@ export function QuestionCard({
       <div className="sb-question-actions">
         {question.hint && !hint && <B onClick={() => setHint(true)}>给我一点提示</B>}
         <B primary onClick={() => setRevealed((v) => !v)}>
-          {revealed ? '收起答案' : '揭晓答案'}
+          {quote ? (revealed ? '遮住原文' : '显示原文') : revealed ? '收起答案' : '揭晓答案'}
         </B>
         {onFeedback && (
           <B disabled={!answer.trim()} onClick={() => onFeedback(answer)}>
@@ -375,7 +380,7 @@ export function QuestionCard({
       </div>
       {revealed && (
         <div className="sb-answer">
-          <span>参考答案</span>
+          <span>{quote ? '摘录原文' : '参考答案'}</span>
           {renderAnswer ? renderAnswer(question) : <div className="sb-readable-text">{question.answer}</div>}
           {question.checkpoints?.length > 0 && (
             <section className="sb-answer-checkpoints">
