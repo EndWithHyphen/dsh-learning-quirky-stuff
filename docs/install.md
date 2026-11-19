@@ -9,10 +9,10 @@
 命令行版可在独立的 `studyboard` profile 安装：
 
 ```sh
-dsh plugin --profile studyboard add ./dsh-learning-quirky-stuff-4.6.0.tgz
+dsh plugin --profile studyboard add dsh-learning-quirky-stuff@4.6.0
 ```
 
-也可通过 DSH 的添加插件入口选择安装来源。安装后启用学习画板，打开主面板。上例使用 [4.6.0 发布页](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases/tag/v4.6.0) 中的插件包。使用 npm 安装时可查看[已发布版本](https://www.npmjs.com/package/dsh-learning-quirky-stuff?activeTab=versions)。
+桌面版也可在「插件」页面添加同名 npm 包。安装后启用学习画板，打开主面板。如需从本地文件安装，请从 [4.6.0 发布页](https://github.com/EndWithHyphen/dsh-learning-quirky-stuff/releases/tag/v4.6.0) 下载插件包。可在 [npm](https://www.npmjs.com/package/dsh-learning-quirky-stuff/v/4.6.0) 核对版本。
 
 ## 从旧本机版本迁移
 
