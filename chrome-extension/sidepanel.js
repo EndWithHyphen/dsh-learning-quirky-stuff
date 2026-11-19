@@ -1053,10 +1053,14 @@ chrome.storage.onChanged.addListener((changes, area) => {
     openContext(changes[tabNoteKey(boundTabId)].newValue).catch((e) => error(e.message));
 });
 
-window.addEventListener('beforeunload', () => {
+window.addEventListener('beforeunload', (event) => {
   if (captureOperation) cancelCapture();
   if (current?.dirty) persist(current).catch(() => {});
   canvasInstance?.persist?.().catch(() => {});
+  if (canvasInstance?.hasUnpersistedChanges) {
+    event.preventDefault();
+    event.returnValue = '';
+  }
 });
 window.addEventListener('focus', () => {
   if (current?.id && !current.dirty && !canvasInstance?.dirty && !screenshotBusy)

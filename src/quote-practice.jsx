@@ -1,9 +1,24 @@
 import React, { useState, useSyncExternalStore } from 'react';
-import { isQuoteCard, readCardValues } from './learning-card-data.js';
+import { canvasQuotes } from '../shared/canvas-quotes.js';
+
+function useQuotes(api) {
+  const elements = useSyncExternalStore(api.onChange, api.getSceneElements);
+  return canvasQuotes(elements);
+}
+
+export function QuotePracticeEntry({ api, selectedId, onStart }) {
+  const quotes = useQuotes(api);
+  if (!quotes.length) return null;
+  return (
+    <button onClick={() => onStart(quotes.find((quote) => quote.id === selectedId)?.id || quotes[0].id)}>
+      <strong>背诵摘录</strong>
+      <span>复习这张画布上的 {quotes.length} 条原文</span>
+    </button>
+  );
+}
 
 export default function QuotePractice({ api, startId, onClose }) {
-  const elements = useSyncExternalStore(api.onChange, api.getSceneElements);
-  const cards = elements.filter(isQuoteCard);
+  const cards = useQuotes(api);
   const [currentId, setCurrentId] = useState(startId);
   const [shown, setShown] = useState(null);
   const index = Math.max(
@@ -13,7 +28,7 @@ export default function QuotePractice({ api, startId, onClose }) {
   const card = cards[index];
   if (!card) return <p>这张画布还没有金句摘录。</p>;
 
-  const { text, source } = readCardValues(card, elements);
+  const { text, source } = card;
   const revealed = shown?.id === card.id && shown.text === text;
   function goTo(next) {
     setShown(null);

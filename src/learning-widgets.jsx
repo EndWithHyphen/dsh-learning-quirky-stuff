@@ -11,10 +11,9 @@ import {
   ownedCardElements as owned,
   readCardValues as currentValues,
   cardAtPoint,
-  isQuoteCard,
   quoteFromSelection,
 } from './learning-card-data.js';
-import QuotePractice from './quote-practice.jsx';
+import QuotePractice, { QuotePracticeEntry } from './quote-practice.jsx';
 import { focusCanvas, isEditingCanvasText } from './canvas-shortcuts.js';
 const meta = (e) => e?.customData?.studyboard || {};
 const live = (elements) => elements.filter((e) => !e.isDeleted);
@@ -522,7 +521,6 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
     }
   }
   const placementTarget = root()?.querySelector('.canvas-engine') || root();
-  const quotes = menu ? (api()?.getSceneElements() || []).filter(isQuoteCard) : [];
   const dialogTitle = menu
     ? '学习控件'
     : practiceId
@@ -592,18 +590,15 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
                     <strong>编辑选中卡片</strong>
                     <span>修改内容并重新排版</span>
                   </button>
-                  {quotes.length > 0 && (
-                    <button
-                      onClick={() => {
-                        setPracticeId(
-                          quotes.find((card) => card.id === choice.widget?.id)?.id || quotes[0].id,
-                        );
+                  {api() && (
+                    <QuotePracticeEntry
+                      api={api()}
+                      selectedId={choice.widget?.id}
+                      onStart={(id) => {
+                        setPracticeId(id);
                         setMenu(false);
                       }}
-                    >
-                      <strong>背诵摘录</strong>
-                      <span>复习这张画布上的 {quotes.length} 条原文</span>
-                    </button>
+                    />
                   )}
                 </div>
                 <p>填写后拖选摆放区域，松开即可自动排版。内容较多时会自动向下展开，并避开已有内容。</p>

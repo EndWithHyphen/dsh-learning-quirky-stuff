@@ -187,7 +187,7 @@ export async function mount(root, context, callbacks = {}) {
       files: { ...files },
     });
   }
-  async function flushCanvas() {
+  function captureCurrentScene() {
     if (api && !disposed && !applying) {
       const elements = api.getSceneElementsIncludingDeleted(),
         state = api.getAppState(),
@@ -198,6 +198,9 @@ export async function mount(root, context, callbacks = {}) {
       )
         session.change({ elements: elements.map((e) => ({ ...e })), appState: cleanState(state), files });
     }
+  }
+  async function flushCanvas() {
+    captureCurrentScene();
     return session.flush();
   }
   const action = (fn) => async () => {
@@ -376,7 +379,13 @@ export async function mount(root, context, callbacks = {}) {
   return {
     id: context.id,
     flush: () => flushCanvas(),
-    persist: () => session.persist(),
+    persist() {
+      captureCurrentScene();
+      return session.persist();
+    },
+    get hasUnpersistedChanges() {
+      return session.hasUnpersistedChanges;
+    },
     get dirty() {
       return session.dirty;
     },

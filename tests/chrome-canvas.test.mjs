@@ -58,6 +58,35 @@ test('画布在保存期间继续写字，串行保存新笔迹，完成后才�
   assert.equal(cache.store.size, 0);
   await s.dispose();
 });
+test('只有最新画布草稿落盘后才允许直接刷新，旧写入完成不能放行新编辑', async () => {
+  const cache = drafts();
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const session = new CanvasSession({
+    context,
+    drafts: {
+      ...cache,
+      put: async (key, value) => {
+        await gate;
+        return cache.put(key, value);
+      },
+    },
+    request: async () => ({ scene: empty, revision: 0 }),
+  });
+  await session.load();
+  assert.equal(session.hasUnpersistedChanges, false);
+  session.change(ink(1));
+  const firstWrite = session.persist();
+  session.change(ink(2));
+  release();
+  await firstWrite;
+  assert.equal(session.hasUnpersistedChanges, true);
+  await session.persist();
+  assert.equal(session.hasUnpersistedChanges, false);
+  await session.dispose();
+});
 test('网络丢失保存响应后，保留同一请求编号重试，随后保存新增笔迹', async () => {
   const cache = drafts(),
     sent = [];

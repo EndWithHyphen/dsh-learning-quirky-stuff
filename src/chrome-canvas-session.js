@@ -11,6 +11,7 @@ export class CanvasSession {
     this.blocked = false;
     this.pending = null;
     this.generation = 0;
+    this.persistedGeneration = null;
     this.draftTail = Promise.resolve();
     this.disposed = false;
   }
@@ -27,6 +28,7 @@ export class CanvasSession {
       this.revision = draft.baseRevision;
       this.pending = draft.pending || null;
       this.generation = draft.generation || 0;
+      this.persistedGeneration = this.generation;
       this.dirty = true;
       if (this.pending && missingImageFiles(this.pending.scene).length) this.pending = null;
       if (this.pending && this.pending.generation === undefined)
@@ -51,11 +53,16 @@ export class CanvasSession {
           updatedAt: Date.now(),
         })
       : null;
-    const p = this.draftTail.then(() =>
-      value ? this.drafts.put(this.key, value) : this.drafts.delete(this.key),
-    );
+    const p = this.draftTail.then(async () => {
+      if (value) await this.drafts.put(this.key, value);
+      else await this.drafts.delete(this.key);
+      this.persistedGeneration = value?.generation ?? null;
+    });
     this.draftTail = p.catch(() => {});
     return p;
+  }
+  get hasUnpersistedChanges() {
+    return this.dirty && this.persistedGeneration !== this.generation;
   }
   change(scene) {
     if (this.disposed || scene === this.scene) return;

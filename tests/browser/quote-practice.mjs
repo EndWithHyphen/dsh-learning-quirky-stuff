@@ -31,8 +31,19 @@ export async function checkQuotePractice(panel, dsh, noteTitle, selectedText) {
   await form.getByRole('alert').filter({ hasText: '请填写原文' }).waitFor();
   await input.fill(passage);
   await form.getByLabel(/出处/).fill('读书札记');
+  const savedQuote = panel.waitForResponse(
+    (response) =>
+      response.url().endsWith('/note/canvas/save') &&
+      response.request().method() === 'POST' &&
+      response
+        .request()
+        .postDataJSON()
+        .scene.elements.some((element) => element.customData?.studyboard?.values?.text === passage),
+  );
   await placeQuote(panel);
   await button(panel, '保存').first().click();
+  assert.ok((await savedQuote).ok());
+  await panel.locator('.canvas-status [role="status"]').filter({ hasText: '笔记已保存到 DSH' }).waitFor();
   await panel.reload();
   await panel.waitForFunction(() => window.__qaCanvas);
   const one = await startPractice(panel);
