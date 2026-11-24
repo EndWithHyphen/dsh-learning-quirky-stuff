@@ -4,6 +4,14 @@ import { hideBottomDrawer } from './bottom-drawer.js';
 import { openBottom, bottomMessage } from './docking.js';
 import { syncPurged } from './purged.js';
 import {
+  enableSelectionTool,
+  recordSelection,
+  registerSelectionMenu,
+  retrySelections,
+  selectionMenuClick,
+  selectionShortcut,
+} from './selection-capture.js';
+import {
   tabNoteKey,
   tabContext,
   readTabNote,
@@ -101,6 +109,7 @@ function activate(tab) {
   }
   // Open before any storage or network wait, while the user gesture is active.
   const opening = openTabPanel(tab.id);
+  enableSelectionTool(tab)?.catch(() => {});
   const item = {
     requestId: crypto.randomUUID(),
     title: tab.title || '网页笔记',
@@ -244,26 +253,33 @@ async function capturePage(m) {
     videoTime: info?.videoTime ?? null,
   };
 }
-chrome.commands.onCommand.addListener((name, tab) => {
-  if (name === 'capture-note') fromUser(tab);
-});
+function handleCommand(name, tab) {
+  if (name === 'capture-note') return fromUser(tab);
+  return selectionShortcut(name, tab);
+}
+chrome.commands.onCommand.addListener(handleCommand);
 chrome.action.onClicked.addListener(fromUser);
+chrome.contextMenus?.onClicked.addListener(selectionMenuClick);
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'retry-capture') {
     syncPurged({ updateQueue }).catch(() => {});
     flush();
+    retrySelections().catch(() => {});
   }
 });
 chrome.runtime.onInstalled.addListener(async (details) => {
+  registerSelectionMenu();
   if (details?.reason === 'install') await chrome.runtime.openOptionsPage?.();
   await chrome.alarms.create('retry-capture', { periodInMinutes: 1 });
   await configureExistingTabs();
 });
 chrome.runtime.onStartup.addListener(async () => {
+  registerSelectionMenu();
   await chrome.alarms.create('retry-capture', { periodInMinutes: 1 });
   await configureExistingTabs();
   await syncPurged({ updateQueue }).catch(() => {});
   await flush();
+  await retrySelections();
 });
 chrome.tabs.onCreated?.addListener((tab) => configureTab(tab.id).catch(() => {}));
 chrome.tabs.onRemoved?.addListener((id) => {
@@ -277,6 +293,21 @@ chrome.tabs.onAttached?.addListener((id, info) =>
 );
 chrome.runtime.onMessage.addListener((m, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id) return;
+  if (m.action === 'record-selection') {
+    if (
+      !sender.tab ||
+      sender.frameId !== 0 ||
+      sender.url !== m.url ||
+      (sender.tab.url && sender.tab.url !== m.url)
+    ) {
+      sendResponse({ ok: false, error: '网页已切换，请重新选中文字' });
+      return;
+    }
+    recordSelection({ ...sender.tab, url: sender.url }, m.text, sender.url, m.kind).then(sendResponse, (e) =>
+      sendResponse({ ok: false, error: e.message }),
+    );
+    return true;
+  }
   if (['extract-material', 'focus-material'].includes(m.action)) {
     (async () => {
       const c = m.context,
@@ -293,6 +324,13 @@ chrome.runtime.onMessage.addListener((m, sender, sendResponse) => {
             : StudyboardPageReader.focusMaterial(locator),
         args: [m.action, m.locator || {}],
       });
+      if (
+        m.action === 'extract-material' &&
+        (output[0]?.result?.url !== c.url ||
+          (await chrome.tabs.get(c.tabId)).url !== c.url ||
+          (await readTabNote(c.tabId))?.id !== c.id)
+      )
+        throw new Error('网页或绑定的笔记已切换，请重新读取');
       return m.action === 'extract-material'
         ? { ok: true, document: output[0].result }
         : { ok: true, ...output[0].result };
@@ -315,7 +353,10 @@ chrome.runtime.onMessage.addListener((m, sender, sendResponse) => {
     return true;
   }
   if (m.action === 'flush') {
-    flush().then(() => sendResponse({ ok: true }));
+    Promise.all([flush(), retrySelections()]).then(
+      () => sendResponse({ ok: true }),
+      (e) => sendResponse({ ok: false, error: e.message }),
+    );
     return true;
   }
   if (m.action === 'sync-purged') {

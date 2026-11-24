@@ -6,13 +6,11 @@ const clean = (text) =>
     .trim();
 export async function extractMaterial() {
   const video = document.querySelector('video'),
-    isVideo =
-      !!video ||
-      /(^|\.)(youtube\.com|bilibili\.com)$/.test(location.hostname) ||
-      location.hostname === 'youtu.be';
-  if (isVideo) {
+    videoSite =
+      /(^|\.)(youtube\.com|bilibili\.com)$/.test(location.hostname) || location.hostname === 'youtu.be';
+  if (videoSite || (video && !document.querySelector('article p,main p'))) {
     if (video) {
-      const tracks = [...video.textTracks],
+      const tracks = Array.from(video.textTracks || []),
         track =
           tracks.find((track) => track.mode === 'showing') ||
           tracks.find((track) => /^zh/.test(track.language)) ||
@@ -37,7 +35,9 @@ export async function extractMaterial() {
               kind: 'video',
               blocks,
               completeness:
-                Number.isFinite(video.duration) && blocks.at(-1).endSeconds > video.duration * 0.85
+                track.cues.length <= 1500 &&
+                Number.isFinite(video.duration) &&
+                blocks.at(-1).endSeconds > video.duration * 0.85
                   ? 'full'
                   : 'partial',
             };
@@ -46,19 +46,23 @@ export async function extractMaterial() {
         }
       }
     }
-    return {
-      title: document.title,
-      url: location.href,
-      kind: 'video',
-      blocks: [],
-      needsTranscript: true,
-      completeness: 'partial',
-    };
+    if (videoSite || !document.querySelector('p'))
+      return {
+        title: document.title,
+        url: location.href,
+        kind: 'video',
+        blocks: [],
+        needsTranscript: true,
+        completeness: 'partial',
+      };
   }
   const clone = document.cloneNode(true);
   clone.querySelector('#__studyboard_bottom')?.remove();
   const article = new Readability(clone, { maxElemsToParse: 40000 }).parse();
-  if (!article?.textContent?.trim())
+  if (
+    !article?.textContent?.trim() ||
+    /^(just a moment|access denied|checking your browser|verify you are human)/i.test(article.title || '')
+  )
     return { title: document.title, url: location.href, blocks: [], needsText: true, kind: 'article' };
   const doc = new DOMParser().parseFromString(article.content, 'text/html'),
     parts = [...doc.querySelectorAll('h1,h2,h3,h4,p,li,pre,blockquote')]
@@ -66,8 +70,9 @@ export async function extractMaterial() {
       .map((node) => clean(node.textContent))
       .filter(Boolean),
     candidates = [...document.querySelectorAll('h1,h2,h3,h4,p,li,pre,blockquote')],
-    prefix = 'study-' + crypto.randomUUID().slice(0, 8);
-  const blocks = (parts.length ? parts : [clean(article.textContent)]).slice(0, 300).map((text, index) => {
+    prefix = 'study-' + crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
+  const paragraphs = parts.length ? parts : [clean(article.textContent)];
+  const blocks = paragraphs.slice(0, 300).map((text, index) => {
     const domId = prefix + '-' + index,
       found = candidates.find((node) => clean(node.textContent) === text);
     if (found) found.dataset.studyboardSource = domId;
@@ -86,7 +91,9 @@ export async function extractMaterial() {
     kind: 'article',
     blocks: bounded,
     completeness:
-      bounded.length < blocks.length || /larkoffice\.com$|feishu\.cn$/.test(location.hostname)
+      bounded.length < paragraphs.length ||
+      paragraphs.some((p) => p.length > 10000) ||
+      /larkoffice\.com$|feishu\.cn$/.test(location.hostname)
         ? 'partial'
         : 'full',
   };

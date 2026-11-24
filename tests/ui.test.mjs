@@ -388,6 +388,10 @@ test('图文专题优先展示主线图与原图，生成时自动附带复习�
   assert.equal(r.queryByRole('checkbox', { name: '生成少量核心复习题' }), null);
   fireEvent.click(r.getByRole('button', { name: '生成AI总结' }));
   await waitFor(() => assert.equal(generated.includeReview, true));
+  assert.equal(generated.templateId, 'default');
+  fireEvent.change(r.getByRole('combobox', { name: '总结模板' }), { target: { value: 'explain' } });
+  fireEvent.click(r.getByRole('button', { name: '生成AI总结' }));
+  await waitFor(() => assert.equal(generated.templateId, 'explain'));
 });
 
 test('当前总结可直接删除、撤销及恢复，重开不显示已删除内容', async () => {

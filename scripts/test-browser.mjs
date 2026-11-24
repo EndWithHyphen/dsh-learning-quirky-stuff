@@ -7,11 +7,24 @@ import { createServer } from 'node:http';
 import assert from 'node:assert/strict';
 import { LibraryStore } from '../core.js';
 import { LearningStore } from '../learning.js';
+import { SummaryJobs } from '../model.js';
+import { studyFixture } from '../tests/fixture.mjs';
 import { LearningRuntime } from '../server/runtime.js';
 import { CaptureServer } from '../capture-server.js';
 import { excalidrawChinese } from './excalidraw-locale.mjs';
 import { excalidrawCancellation } from './excalidraw-cancellation.mjs';
 import { checkQuotePractice } from '../tests/browser/quote-practice.mjs';
+import { checkSelectionCapture } from '../tests/browser/selection-capture.mjs';
+import {
+  checkPageStudy,
+  checkCanvasTemplate,
+  testArticleUrl,
+  testTemplatePrompt,
+  testCommonPrompt,
+  canvasTemplatePrompt,
+} from '../tests/browser/page-study.mjs';
+import { pageStudyResult } from '../tests/page-study-fixture.mjs';
+import { PAGE_STUDY_SCHEMA } from '../server/page-study.js';
 const root = resolve('.'),
   temp = await mkdtemp(join(tmpdir(), 'studyboard-browser-')),
   extension = join(temp, 'extension');
@@ -20,10 +33,28 @@ await cp('chrome-extension', extension, {
   filter: (src) => !/(?:connection\.json(?:\.bak)?|\.log)$/.test(src),
 });
 let retryTestCalls = 0;
+const studyPrompts = [];
 const store = await new LibraryStore(join(temp, 'data')).init(),
   learning = await new LearningStore(store).init(),
   runtime = await new LearningRuntime({ llm: { listProviders: () => [] } }, store, learning, {
+    web: {
+      async read(url) {
+        assert.equal(url, testArticleUrl);
+        return {
+          url,
+          title: '通过网址读取的文章',
+          kind: 'article',
+          blocks: [{ text: '先尝试回忆，再核对资料。' }],
+        };
+      },
+    },
     gateway: {
+      async json(options) {
+        assert.equal(options.schema, PAGE_STUDY_SCHEMA);
+        assert(options.prompt.includes('先尝试回忆，再核对资料。'));
+        studyPrompts.push(options.prompt);
+        return pageStudyResult(options);
+      },
       async text(options) {
         if (options.prompt.includes('用户问题：重试功能验证问题') && retryTestCalls++ === 0)
           throw new Error('模拟首次调用失败');
@@ -35,6 +66,24 @@ const store = await new LibraryStore(join(temp, 'data')).init(),
     },
   }).init();
 const bridge = new CaptureServer(store, { port: 0 });
+const canvasPrompts = [];
+const canvasModel = { id: 'fixture', provider: 'fixture', name: '本机测试模型', vision: true };
+const canvasJobs = new SummaryJobs(
+  {
+    attachments: { admitPromptContent: async (content) => content },
+    llm: {
+      listProviders: () => [{ id: 'fixture' }],
+      listModels: async () => [{ id: 'fixture', inputModalities: ['text', 'image'] }],
+      async *stream(request) {
+        canvasPrompts.push(request.messages[0].content[0].text);
+        yield { type: 'text-delta', text: JSON.stringify(studyFixture) };
+        yield { type: 'finish', reason: { kind: 'stop' } };
+      },
+    },
+  },
+  store,
+  { resolveTemplate: (id) => runtime.config.summaryTemplate(id) },
+);
 bridge.moduleAction = (request) => runtime.execute(request);
 await bridge.start();
 for (const file of ['options.html', 'options.js'])
@@ -45,6 +94,10 @@ for (const file of ['options.html', 'options.js'])
 const manifest = JSON.parse(await readFile(join(extension, 'manifest.json')));
 manifest.host_permissions = ['http://127.0.0.1/*'];
 await writeFile(join(extension, 'manifest.json'), JSON.stringify(manifest));
+// Playwright sends key events to page renderers. Expose the registered Chrome command callback only in the QA copy.
+await writeFile(join(extension, 'background.js'), '\nglobalThis.__qaCommand = handleCommand;\n', {
+  flag: 'a',
+});
 const base = {
   absWorkingDir: root,
   bundle: true,
@@ -88,7 +141,10 @@ const web = createServer(async (req, res) => {
       for await (const c of req) chunks.push(c);
       const { method, args } = JSON.parse(Buffer.concat(chunks));
       let value;
-      if (method === 'models') value = [];
+      if (method === 'models') value = [canvasModel];
+      else if (method === 'startSummary') value = await canvasJobs.start(args[0]);
+      else if (method === 'summaryStatus') value = canvasJobs.get(args[0]);
+      else if (method === 'cancelSummary') value = canvasJobs.cancel(args[0]);
       else if (method === 'captureInfo') value = bridge.info();
       else if (method === 'capturePairing') {
         const r = args[0];
@@ -97,7 +153,7 @@ const web = createServer(async (req, res) => {
         const r = args[0];
         value =
           r.action === 'summaryTask'
-            ? null
+            ? canvasJobs.latest(r.id)
             : r.action === 'graph'
               ? { ...(await learning.graph()), aiJob: null }
               : runtime.has(r.action)
@@ -114,9 +170,9 @@ const web = createServer(async (req, res) => {
       return;
     }
     if (req.url === '/article') {
-      res.setHeader('content-type', 'text/html');
+      res.setHeader('content-type', 'text/html; charset=utf-8');
       res.end(
-        '<!doctype html><title>学习方法测试材料</title><h1>主动回忆</h1><p>先尝试回忆，再核对资料。</p>',
+        '<!doctype html><title>学习方法测试材料</title><article><h1>主动回忆</h1><p>先尝试回忆，再核对资料。</p><video muted></video></article>',
       );
       return;
     }
@@ -544,6 +600,14 @@ try {
   await mkdir('dist/qa', { recursive: true });
   await panel.screenshot({ path: 'dist/qa/browser-smoke.png' });
   await checkQuotePractice(panel, dsh, oldNote.title, oldText);
+  await checkPageStudy(panel, article, dsh, learning);
+  assert.equal(studyPrompts.filter((prompt) => prompt.includes(testTemplatePrompt)).length, 2);
+  assert.equal(studyPrompts.filter((prompt) => prompt.includes(testCommonPrompt)).length, 2);
+  await checkCanvasTemplate(dsh, store);
+  assert.equal(canvasPrompts.length, 1);
+  for (const text of [canvasTemplatePrompt, testCommonPrompt, '关注实验的条件。'])
+    assert(canvasPrompts[0].includes(text));
+  await checkSelectionCapture({ panel, article, options, tab, store, learning, note: oldNote, dsh });
   await dsh.getByRole('button', { name: '断开此连接', exact: true }).click();
   await dsh.getByText('尚未连接浏览器。', { exact: true }).waitFor();
   assert.equal(bridge.info().clients.length, 0);
@@ -556,6 +620,10 @@ try {
       revoke: true,
       canvasCreateEditSaveReload: true,
       verbatimQuotePractice: true,
+      webpageSelectionAndReview: true,
+      excerptShortcutsAndCanvasConversion: true,
+      webpageStudyAndReview: true,
+      summaryTemplateSelectionAndHistory: true,
       toolbarOutsideCanvas: true,
       libraryAligned: true,
       longTextWrapPersists: true,
@@ -587,6 +655,7 @@ try {
   throw error;
 } finally {
   await browser.close();
+  await canvasJobs.dispose();
   await runtime.dispose();
   await bridge.close();
   web.closeAllConnections();

@@ -171,7 +171,9 @@ export class LearningStore {
               ? '围绕系统学习的核心机制、条件和联系复习'
               : r.originFeature === 'weekly'
                 ? r.question.context || '回忆这一周学习内容中的核心机制与联系'
-                : '根据理解反馈巩固核心知识',
+                : r.originFeature === 'preview'
+                  ? '根据网页原文回忆并核对答案'
+                  : '根据理解反馈巩固核心知识',
         tasks: r.question.tasks || [],
         answer: r.question.answer,
         hint: r.question.hint || '',

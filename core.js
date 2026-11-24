@@ -123,7 +123,7 @@ export class LibraryStore {
     return { boards, errors };
   }
   meta(b) {
-    const { scene, summaries, webImages, lastWebCanvasSave, ...meta } = b,
+    const { scene, summaries, webImages, lastWebCanvasSave, webQuoteReceipts, ...meta } = b,
       active = activeSummaries(b);
     return {
       ...meta,

@@ -43,6 +43,7 @@ export default class StudyboardService extends TypertRemoteService {
     this.ready.catch(() => {});
     this.jobs = new SummaryJobs(ctx, this.store, {
       infographicsEnabled: () => this.runtime.config.enabled('infographics'),
+      resolveTemplate: (id) => this.runtime.config.summaryTemplate(id),
     });
     this.graphJobs = new GraphJobs(ctx, this.learning);
     for (const name of [

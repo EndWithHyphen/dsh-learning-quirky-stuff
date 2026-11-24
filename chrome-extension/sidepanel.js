@@ -1,4 +1,4 @@
-import { request } from './bridge.js';
+import { request, saveSelection } from './bridge.js';
 import { draftPurge } from './drafts.js';
 import { createPreviewPanel } from './preview-panel.js';
 import { tabNoteKey, openTabPanel } from './tab-notes.js';
@@ -44,15 +44,27 @@ let canvasInstance = null,
   lastDeleted = null,
   imageTail = Promise.resolve(),
   openTail = Promise.resolve();
-const previewPanel = createPreviewPanel($('#preview-root'));
+const previewPanel = createPreviewPanel($('#preview-root'), $('#study-current-page'), $('#study-template'));
+$('#study-current-page').addEventListener('click', () =>
+  previewPanel.summarizePage(() => setMode('preview')),
+);
+let featureRefresh = 0;
 async function refreshFeatures() {
+  const sequence = ++featureRefresh;
   try {
     const result = await request('/module', { action: 'features.get' }),
       enabled = result.value.features.preview;
+    if (sequence !== featureRefresh) return;
     $('#tab-preview').hidden = !enabled;
+    $('#study-current-page').hidden = !enabled;
+    $('#study-template-field').hidden = !enabled;
+    if (enabled) previewPanel.setTemplates(result.value.summaryTemplateOptions);
     if (!enabled && mode === 'preview') await setMode('canvas');
   } catch {
+    if (sequence !== featureRefresh) return;
     $('#tab-preview').hidden = true;
+    $('#study-current-page').hidden = true;
+    $('#study-template-field').hidden = true;
   }
 }
 window.addEventListener('focus', refreshFeatures);
@@ -310,6 +322,7 @@ async function handlePurged(ids) {
   const c = current;
   c.dirty = false;
   current = null;
+  await previewPanel.setContext(null);
   loading++;
   clearTimeout(saveTimer);
   const instance = canvasInstance;
@@ -986,6 +999,31 @@ async function saveBeforeDocking() {
   await canvasInstance?.flush();
 }
 chrome.runtime.onMessage?.addListener((message, sender, reply) => {
+  if (
+    ['sync-excerpt-in-panel', 'sync-selection-in-panel'].includes(message.action) &&
+    sender.id === chrome.runtime.id &&
+    !sender.tab
+  ) {
+    const item = message.item,
+      c = current;
+    if (
+      c?.id &&
+      !c.loading &&
+      c.id === item?.reuseId &&
+      c.url === item.url &&
+      c.tabId === item.tabId &&
+      canvasInstance?.id === c.id
+    ) {
+      withCanvas(c, () => saveSelection(item)).then(
+        (value) => {
+          if (c === current) status(item.kind === 'excerpt' ? '已摘录到画布' : '已将选中文字记为金句');
+          reply({ handled: true, ok: true, value });
+        },
+        (e) => reply({ handled: true, ok: false, error: e.message, code: e.code }),
+      );
+      return true;
+    }
+  }
   if (isBottom && sender.id === chrome.runtime.id && message.session === dockSession) {
     if (message.action === 'purge-dock') {
       handlePurged(message.ids).then(

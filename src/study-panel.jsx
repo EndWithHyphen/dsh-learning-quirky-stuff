@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { legacyStudy } from '../study-schema.js';
 import { diagramLayout } from './diagram-layout.js';
 import SourceFigure from './source-figure.jsx';
+import SummaryTemplatePicker from './summary-template-picker.jsx';
+import { templateLabel } from '../shared/summary-templates.js';
 import { useLearning } from './features/context.jsx';
 import { highlightText } from './features/source-focus.js';
 import { useSummaryInfographics, InfographicRegion } from './infographic-panel.jsx';
@@ -568,6 +570,7 @@ export default function StudyPanel({
     [route, setRoute] = useState(localStorage.getItem('studyboard-model') || ''),
     [scope, setScope] = useState('board'),
     [instructions, setInstructions] = useState(''),
+    [templateId, setTemplateId] = useState('default'),
     [job, setJob] = useState(null),
     [busy, setBusy] = useState(false),
     [expanded, setExpanded] = useState(
@@ -726,6 +729,7 @@ export default function StudyPanel({
         instructions,
         includeReview: true,
         mode,
+        ...(mode === 'summary' ? { templateId } : {}),
         ...extra,
       });
       setJob(j);
@@ -900,7 +904,7 @@ export default function StudyPanel({
                 {!visibleSummaries.length && <option value="">暂无总结</option>}
                 {[...visibleSummaries].reverse().map((s) => (
                   <option value={s.id} key={s.id}>
-                    {legacyStudy(s).title} · {date(s.createdAt)}
+                    {legacyStudy(s).title} · {templateLabel(s.template)} · {date(s.createdAt)}
                   </option>
                 ))}
               </select>
@@ -932,6 +936,12 @@ export default function StudyPanel({
             )}
             {generation && (
               <section className="sb-generation">
+                <SummaryTemplatePicker
+                  value={templateId}
+                  onChange={setTemplateId}
+                  surface="canvas"
+                  disabled={busy || running}
+                />
                 <div className="sb-model-field">
                   <label htmlFor={modelSelectId}>模型</label>
                   <div className="sb-model-label">
@@ -1048,7 +1058,7 @@ export default function StudyPanel({
                   </span>
                   <h1>{study.title}</h1>
                   <p>
-                    {date(summary.createdAt)} ·{' '}
+                    {date(summary.createdAt)} · {templateLabel(summary.template)} ·{' '}
                     {summary.provider === 'codex-local'
                       ? summary.model === 'default'
                         ? 'Codex · 旧任务未记录具体模型'

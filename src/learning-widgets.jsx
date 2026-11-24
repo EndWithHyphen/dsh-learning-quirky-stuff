@@ -6,12 +6,18 @@ import {
   getCommonBounds,
   newElementWith,
 } from '@excalidraw/excalidraw';
-import { LEARNING_TYPES, layoutLearningCard, findLearningSpace } from './learning-layout.js';
+import {
+  LEARNING_TYPES,
+  layoutLearningCard,
+  findLearningSpace,
+  learningCardSkeleton,
+} from './learning-layout.js';
 import {
   ownedCardElements as owned,
   readCardValues as currentValues,
   cardAtPoint,
   quoteFromSelection,
+  convertibleQuoteSelection,
 } from './learning-card-data.js';
 import QuotePractice, { QuotePracticeEntry } from './quote-practice.jsx';
 import { focusCanvas, isEditingCanvasText } from './canvas-shortcuts.js';
@@ -216,6 +222,7 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
       setMenu(true);
     },
     editImage,
+    convertSelectionToQuote,
     get placing() {
       return !!placement;
     },
@@ -241,11 +248,14 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
       return removed.has(e.id) ? newElementWith(e, { isDeleted: true }) : e;
     });
     for (const e of [...created, ...extra]) if (!ids.has(e.id)) result.push(e);
+    commitElements(result, [...created, ...extra]);
+  }
+  function commitElements(result, selection) {
     api().updateScene({
       elements: result,
       appState: {
         selectedElementIds: Object.fromEntries(
-          [...created, ...extra].filter((e) => !e.isDeleted).map((e) => [e.id, true]),
+          selection.filter((e) => !e.isDeleted).map((e) => [e.id, true]),
         ),
       },
       captureUpdate: CaptureUpdateAction.IMMEDIATELY,
@@ -273,38 +283,65 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
     });
   }
   function makeElements(layout, origin, data, groupId, old = []) {
-    const roles = new Map(old.map((e) => [meta(e).role, e])),
-      ownerId = data.ownerId || crypto.randomUUID();
-    const skeleton = layout.items.map((item) => {
-      const { role, field, ...shape } = item,
-        id = role === 'background' ? ownerId : roles.get(role)?.id || crypto.randomUUID();
-      return {
-        ...shape,
-        id,
-        x: origin.x + shape.x,
-        y: origin.y + shape.y,
-        groupIds: [groupId],
-        customData: {
-          studyboard: {
-            widgetId: ownerId,
-            role,
-            field: field || null,
-            renderedText: shape.text || '',
-            ...(data.imageId ? { imageNoteFor: data.imageId } : {}),
-            ...(role === 'background' && !data.imageId
-              ? {
-                  widget: data.kind,
-                  values: data.values,
-                  groupId,
-                  scale: data.scale,
-                  layoutWidth: layout.width,
-                }
-              : {}),
-          },
-        },
-      };
-    });
+    const skeleton = learningCardSkeleton(layout, origin, data, groupId, old);
     return JSON.parse(JSON.stringify(convertToExcalidrawElements(skeleton, { regenerateIds: false })));
+  }
+  function convertSelectionToQuote() {
+    const picked = convertibleQuoteSelection(api(), root());
+    if (!picked) return;
+    if (picked.text.length > 6000) {
+      api().setToast({ message: '单条金句最多 6000 个字符，双击文字后可选取其中一段。' });
+      return;
+    }
+    const { element, text, partial } = picked;
+    picked.editor?.blur();
+    const values = { text, source: meta(element).webSource?.title || '' };
+    const width = Math.min(640, Math.max(300, element.width || 480));
+    if (partial) {
+      place(
+        { kind: 'quote', values, sourceUrl: element.link },
+        { x: element.x, y: element.y + element.height + 24, width, height: 0 },
+      );
+      return;
+    }
+    const layout = layoutLearningCard('quote', values, { width, height: 0 }, 1, measure);
+    const group = crypto.randomUUID();
+    const card = makeElements(
+      layout,
+      { x: element.x, y: element.y },
+      { kind: 'quote', values, sourceUrl: element.link, scale: 1 },
+      group,
+    ).map((shape) => {
+      const groups = [group, ...(element.groupIds || [])];
+      if (meta(shape).role !== 'passage')
+        return { ...shape, index: null, frameId: element.frameId, groupIds: groups };
+      // Keep the text ID so existing canvas discussions and arrow bindings follow the passage.
+      return newElementWith(element, {
+        x: shape.x,
+        y: shape.y,
+        width: shape.width,
+        height: shape.height,
+        angle: 0,
+        text: shape.text,
+        originalText: text,
+        fontSize: shape.fontSize,
+        fontFamily: shape.fontFamily,
+        lineHeight: shape.lineHeight,
+        strokeColor: shape.strokeColor,
+        opacity: shape.opacity,
+        textAlign: 'left',
+        verticalAlign: 'top',
+        autoResize: false,
+        groupIds: groups,
+        customData: { ...element.customData, studyboard: { ...meta(element), ...meta(shape) } },
+      });
+    });
+    const scene = api()
+      .getSceneElementsIncludingDeleted()
+      .flatMap((e) => (e.id === element.id ? card : [e]));
+    commitElements(scene, card);
+    reveal(card);
+    api().setToast({ message: '已转为金句，画布保存后加入「今日复习」' });
   }
   function place(formData, area) {
     const all = api().getSceneElementsIncludingDeleted(),
@@ -331,7 +368,13 @@ export default forwardRef(function LearningWidgets({ apiRef, rootRef, onError },
     const created = makeElements(
       layout,
       origin,
-      { kind: formData.kind, values: formData.values, scale, ownerId: owner?.id },
+      {
+        kind: formData.kind,
+        values: formData.values,
+        scale,
+        ownerId: owner?.id,
+        sourceUrl: formData.sourceUrl,
+      },
       groupId,
       old,
     );

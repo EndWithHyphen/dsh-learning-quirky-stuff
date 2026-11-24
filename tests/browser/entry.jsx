@@ -22,7 +22,15 @@ const context = {
   remote: {
     $mount: async () => {},
     studyboard: Object.fromEntries(
-      ['execute', 'models', 'captureInfo', 'capturePairing'].map((method) => [method, rpc(method)]),
+      [
+        'execute',
+        'models',
+        'startSummary',
+        'summaryStatus',
+        'cancelSummary',
+        'captureInfo',
+        'capturePairing',
+      ].map((method) => [method, rpc(method)]),
     ),
   },
   inject: (_dependencies, fn) => fn(context),

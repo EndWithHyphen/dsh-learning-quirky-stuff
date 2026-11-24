@@ -6,8 +6,14 @@ export class MaterialLibrary {
   constructor(store, materials) {
     this.store = store;
     this.materials = materials;
+    this.captureTail = Promise.resolve();
   }
-  async capture(request) {
+  capture(request) {
+    const work = this.captureTail.then(() => this.captureDocument(request));
+    this.captureTail = work.catch(() => {});
+    return work;
+  }
+  async captureDocument(request) {
     const url = request.url ? publicUrl(request.url) : null,
       title = optionalText(request.title, 300) || '导入材料';
     let blocks;
@@ -38,10 +44,17 @@ export class MaterialLibrary {
     if (!blocks.length) throw new Error('没有读取到正文或字幕，请粘贴文本或导入字幕文件');
     if (blocks.reduce((size, block) => size + block.text.length, 0) > 250000)
       throw new Error('材料过长，请分段导入');
+    const completeness =
+      request.completeness === 'partial' ||
+      (Array.isArray(request.blocks) &&
+        (request.blocks.length > 1500 || request.blocks.some((b) => b.text?.length > 10000)))
+        ? 'partial'
+        : 'full';
     const contentHash = digest([url, blocks.map((block) => [block.text, block.seconds])]),
       existing = (await this.materials.list()).find(
         (material) =>
           material.contentHash === contentHash &&
+          (material.completeness || 'full') === completeness &&
           !material.deletedAt &&
           material.boardId === (request.boardId || null),
       );
@@ -64,10 +77,11 @@ export class MaterialLibrary {
       boardId: request.boardId || null,
       blocks,
       contentHash,
-      completeness: request.completeness === 'partial' ? 'partial' : 'full',
+      completeness,
       estimatedMinutes: readingMinutes(blocks),
       createdAt: new Date().toISOString(),
       latestPreviewId: null,
+      latestStudyId: null,
       deletedAt: null,
     };
     await this.materials.put(material.id, material);

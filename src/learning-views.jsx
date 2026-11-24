@@ -286,7 +286,7 @@ export function ReviewView({ api, onError, onOpen, onChanged }) {
           <p>
             {data.total
               ? '新的到期任务会在这里出现。'
-              : '在画布保存一张「金句摘录」，或把自测题加入复习，就可以从这里开始。'}
+              : '在画布中选一段文字点「转为金句」，或把自测题加入复习，就可以从这里开始。'}
           </p>
           {skip.size > 0 && (
             <B
@@ -407,6 +407,10 @@ export function CaptureView({ api, onError }) {
           暂不可用时，草稿保存在 Chrome。
         </p>
         <p>快捷键可在 Chrome 的「扩展程序 → 键盘快捷键」里修改。</p>
+        <p>
+          选中网页正文，按 Alt（Mac 用 ⌥）+ Shift + Z 摘录到画布，按 Alt + Shift + X
+          做「金句记录」。金句保存后自动加入「今日复习」。
+        </p>
       </section>
     </section>
   );

@@ -12,6 +12,9 @@ import {
 } from './shared.jsx';
 import { timestampUrl } from '../../shared/material-text.js';
 import { highlightText } from './source-focus.js';
+import PageStudyReport from './page-study-report.jsx';
+import SummaryTemplatePicker from '../summary-template-picker.jsx';
+import { templateLabel } from '../../shared/summary-templates.js';
 
 const time = (seconds) => Math.floor(seconds / 60) + ':' + String(Math.floor(seconds % 60)).padStart(2, '0');
 export default function PreviewView({ context = {} }) {
@@ -24,46 +27,76 @@ export default function PreviewView({ context = {} }) {
     [title, setTitle] = useState(''),
     [text, setText] = useState(''),
     [mode, setMode] = useState('url'),
+    [templateId, setTemplateId] = useState('default'),
     [error, setError] = useState(''),
     reader = useRef(),
-    requestVersion = useRef(0);
+    requestVersion = useRef(0),
+    startedFrom = useRef(null);
   const refresh = async (id = selected, reportId = sourceReportId) => {
     const version = ++requestVersion.current;
-    setMaterials(await learning.api('execute', { action: 'materials.list' }));
+    const list = await learning.api('execute', { action: 'materials.list' });
+    if (version !== requestVersion.current) return;
+    setMaterials(list);
     if (id) {
       const data = await learning.api('execute', { action: 'materials.get', id });
-      const report = reportId ? await learning.api('execute', { action: 'reports.get', id: reportId }) : null;
-      if (version === requestVersion.current)
-        setDetail(report?.key === id ? { ...data, report, sourceVersion: true } : data);
+      const isLatest = !reportId || data.report?.id === reportId || data.studyReport?.id === reportId;
+      const report = isLatest ? null : await learning.api('execute', { action: 'reports.get', id: reportId });
+      if (version === requestVersion.current) {
+        if (report?.key === id)
+          setDetail({
+            ...data,
+            report: report.kind === 'pageStudy' ? null : report,
+            studyReport: report.kind === 'pageStudy' ? report : null,
+            sourceVersion: true,
+          });
+        else setDetail(data);
+      }
     }
   };
   const task = useTask('preview', async (result) => {
     if (result.materialId) {
+      if (selected && selected !== result.materialId && startedFrom.current !== selected) {
+        await refresh();
+        return;
+      }
+      const reportId = result.reportId || '';
       setSelected(result.materialId);
-      setSourceReportId('');
-      await refresh(result.materialId, '');
+      setSourceReportId(reportId);
+      await refresh(result.materialId, reportId);
     }
   });
+  function startTask(request) {
+    startedFrom.current = selected;
+    return task.start(request);
+  }
   useEffect(() => {
     refresh().catch((error) => setError(error.message));
   }, [selected, sourceReportId]);
   useEffect(() => {
+    let active = true;
     if (context.materialId) setSelected(context.materialId);
     if (context.reportId)
       learning
         .api('execute', { action: 'reports.get', id: context.reportId })
         .then((report) => {
+          if (!active) return;
           setSourceReportId(report.id);
           setSelected(report.key);
         })
-        .catch((error) => setError(error.message));
+        .catch((error) => {
+          if (active) setError(error.message);
+        });
+    else setSourceReportId('');
+    return () => {
+      active = false;
+    };
   }, [context.materialId, context.reportId]);
   useEffect(() => {
-    if (detail?.report?.id === context.reportId)
+    if (context.reportId && [detail?.report?.id, detail?.studyReport?.id].includes(context.reportId))
       requestAnimationFrame(() =>
         highlightText(document.querySelector('.sb-module-report'), context.textQuote),
       );
-  }, [detail?.report?.id, context.reportId, context.textQuote]);
+  }, [detail?.report?.id, detail?.studyReport?.id, context.reportId, context.textQuote]);
   useEffect(() => {
     if (detail && context.blockId) {
       const node = [...(reader.current?.querySelectorAll('[data-material-block]') || [])].find(
@@ -108,9 +141,11 @@ export default function PreviewView({ context = {} }) {
     <section className="sb-module-page">
       <header className="sb-module-header">
         <h1>材料预览</h1>
-        <p>读取正文或字幕后，对照已有笔记，找出新内容和重点阅读位置。</p>
+        <p>粘贴网址生成学习要点和自测题，或预览材料与已有笔记的差异。</p>
       </header>
       <ErrorNotice error={error} />
+      <ModelPicker feature="preview" />
+      <SummaryTemplatePicker value={templateId} onChange={setTemplateId} surface="web" disabled={task.busy} />
       <div className="sb-module-tabs">
         <button aria-pressed={mode === 'url'} onClick={() => setMode('url')}>
           读取网址
@@ -136,8 +171,15 @@ export default function PreviewView({ context = {} }) {
               />
             </label>
             <Action
+              primary
               disabled={!url.trim() || task.busy}
-              onClick={() => task.start({ action: 'materials.fetch', url })}
+              onClick={() => startTask({ action: 'materials.studyUrl', url, templateId })}
+            >
+              总结网页
+            </Action>
+            <Action
+              disabled={!url.trim() || task.busy}
+              onClick={() => startTask({ action: 'materials.fetch', url })}
             >
               读取正文
             </Action>
@@ -217,19 +259,59 @@ export default function PreviewView({ context = {} }) {
               </a>
             )}
           </div>
-          <ModelPicker feature="preview" />
           <Action
             primary
             disabled={task.busy}
-            onClick={() => task.start({ action: 'materials.preview', id: material.id })}
+            onClick={() => startTask({ action: 'materials.study', id: material.id, templateId })}
+          >
+            生成学习总结
+          </Action>
+          <Action
+            disabled={task.busy}
+            onClick={() => startTask({ action: 'materials.preview', id: material.id })}
           >
             生成材料预览
           </Action>
           <ReportStatus report={report} />
+          {detail.studyVersions?.length > 1 && (
+            <label className="sb-module-history">
+              已生成的网页总结
+              <select
+                value={detail.studyReport?.id || ''}
+                onChange={(e) => setSourceReportId(e.target.value)}
+              >
+                {!detail.studyReport && <option value="">选择总结</option>}
+                {[...detail.studyVersions].reverse().map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {[
+                      templateLabel(item.template),
+                      item.model,
+                      item.createdAt && new Date(item.createdAt).toLocaleString(),
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {detail.sourceVersion && (
             <p className="sb-notice">
-              当前显示所引用的预览版本。<Action onClick={() => setSourceReportId('')}>查看最新预览</Action>
+              当前显示所引用的版本。<Action onClick={() => setSourceReportId('')}>查看最新结果</Action>
             </p>
+          )}
+          {detail.studyReport && (
+            <PageStudyReport
+              key={detail.studyReport.id}
+              report={detail.studyReport}
+              enroll={() =>
+                learning.api('execute', {
+                  action: 'materials.enrollStudy',
+                  id: material.id,
+                  reportId: detail.studyReport.id,
+                })
+              }
+            />
           )}
           {value && (
             <section className="sb-module-report">

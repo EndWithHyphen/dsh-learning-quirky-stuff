@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 const button = (page, name) => page.getByRole('button', { name, exact: typeof name === 'string' });
 async function openQuoteForm(page) {
   await button(page, '学习控件').click();
-  await button(page, /^金句摘录/).click();
-  return page.getByRole('dialog', { name: '金句摘录' });
+  await button(page, /^金句记录/).click();
+  return page.getByRole('dialog', { name: '金句记录' });
 }
 async function placeQuote(page) {
   await button(page, '选择摆放区域').click();

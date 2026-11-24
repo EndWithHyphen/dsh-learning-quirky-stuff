@@ -56,6 +56,13 @@ check.addEventListener('click', async () => {
   }
 });
 checkConnection();
+async function showShortcuts() {
+  const commands = await chrome.commands.getAll();
+  for (const key of document.querySelectorAll('kbd[data-command]'))
+    key.textContent = commands.find((c) => c.name === key.dataset.command)?.shortcut || '未设置快捷键';
+}
+showShortcuts().catch(() => {});
+window.addEventListener('focus', () => showShortcuts().catch(() => {}));
 document.querySelector('#extension-id').textContent = chrome.runtime.id;
 document.querySelector('#shortcuts').addEventListener('click', (e) => {
   e.preventDefault();

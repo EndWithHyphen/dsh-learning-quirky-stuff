@@ -15,9 +15,16 @@
     <section>
       <h2>使用方式</h2>
       <p>
-        在网页上按 <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>Y</kbd>，或点击扩展图标。Chrome
+        在网页上按 <kbd data-command="capture-note">Ctrl / ⌘ + Shift + Y</kbd>，或点击扩展图标。Chrome
         会打开侧边笔记栏。你可以直接记录、粘贴图片，或点击「区域截图」「可见页截图」，自动同步到同一篇 DSH
         笔记。
+      </p>
+      <p>
+        选中文字后按
+        <kbd data-command="studyboard-clip-selection">Alt + Shift + Z</kbd> 做普通摘录，原文会存到画布。
+        想背的句子按
+        <kbd data-command="studyboard-quote-selection">Alt + Shift + X</kbd>
+        做金句记录，同步后自动加入「今日复习」。
       </p>
       <p>DSH 未打开时会先在本机排队，打开后自动创建。</p>
       <a href="chrome://extensions/shortcuts" id="shortcuts">修改快捷键</a>
@@ -26,10 +33,7 @@
       <a href="privacy.html" target="_blank" rel="noopener">数据处理说明</a> ·
       <a href="THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener">第三方许可</a>
     </p>
-    <small
-      >只在你触发快捷键或点击图标时读取当前页标题与链接。截图仅在你点击截图或粘贴时保存；随手记和截图同步到本机
-      DSH。</small
-    >
+    <small>打开网页笔记或保存摘录时会读取当前页标题与链接。摘录、随手记和截图同步到配对的本机 DSH。</small>
   </main>
   <script type="module" src="options.js"></script>
 </html>

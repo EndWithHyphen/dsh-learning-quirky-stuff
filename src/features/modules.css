@@ -762,3 +762,14 @@
     gap: 12px;
   }
 }
+.sb-page-study details {
+  margin: 12px 0;
+}
+.sb-page-study summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.sb-page-study-cue {
+  padding-inline-start: 12px;
+  border-inline-start: 2px solid var(--sb-accent);
+}

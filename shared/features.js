@@ -54,7 +54,7 @@ export const FEATURES = [
   {
     id: 'preview',
     title: '材料预览',
-    description: '读取文章或字幕，对照已有知识，找出新增内容和重点阅读位置。',
+    description: '将网页正文或字幕整理为学习要点和自测题，也可对照已有笔记预览新内容。',
     model: true,
   },
   {

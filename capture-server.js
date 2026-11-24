@@ -6,6 +6,8 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile, copyFile, readdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { atomicWrite } from './core.js';
+import { captureWebSelection } from './server/web-selection.js';
+import { summaryTemplates } from './shared/summary-templates.js';
 export class CaptureServer {
   constructor(store, options = {}) {
     this.store = store;
@@ -197,6 +199,8 @@ export class CaptureServer {
     if (
       ![
         '/capture',
+        '/capture/quote',
+        '/capture/excerpt',
         '/verify',
         '/note/purged',
         '/note/get',
@@ -238,13 +242,15 @@ export class CaptureServer {
     const limit =
       req.url === '/module'
         ? 2500000
-        : req.url === '/note/canvas/save'
-          ? 65_000_000
-          : req.url === '/note/image'
-            ? 24_000_000
-            : req.url === '/note/save'
-              ? 300_000
-              : 16384;
+        : req.url === '/capture/quote' || req.url === '/capture/excerpt'
+          ? 96_000
+          : req.url === '/note/canvas/save'
+            ? 65_000_000
+            : req.url === '/note/image'
+              ? 24_000_000
+              : req.url === '/note/save'
+                ? 300_000
+                : 16384;
     for await (const chunk of req) {
       size += chunk.length;
       if (size > limit) {
@@ -271,17 +277,30 @@ export class CaptureServer {
             'materials.capture',
             'materials.get',
             'materials.preview',
+            'materials.study',
+            'materials.enrollStudy',
             'tasks.get',
             'tasks.cancel',
           ].includes(r.action)
         )
           throw new Error('浏览器不支持这项学习操作');
+        if (['materials.study', 'materials.enrollStudy'].includes(r.action) && (!r.boardId || !r.url))
+          throw new Error('请从当前网页绑定的笔记操作');
         if (!this.moduleAction) throw new Error('学习模块暂不可用');
         result = { value: await this.moduleAction(r) };
+        if (r.action === 'features.get') {
+          const { summaryTemplates: custom, summaryTemplateCommon, ...settings } = result.value;
+          result.value = {
+            ...settings,
+            summaryTemplateOptions: summaryTemplates(custom).map(({ id, name }) => ({ id, name })),
+          };
+        }
       }
       if (req.url === '/note/purged')
         result = { ids: [...this.store.purged], requestIds: this.config.purgedRequests || [] };
       if (req.url === '/capture') result = await this.capture(r);
+      if (req.url === '/capture/quote') result = await captureWebSelection(this, r, 'quote');
+      if (req.url === '/capture/excerpt') result = await captureWebSelection(this, r, 'excerpt');
       if (req.url === '/note/get') result = await this.store.dispatch({ ...r, action: 'webNote' });
       if (req.url === '/note/save') result = await this.store.dispatch({ ...r, action: 'saveWebNotes' });
       if (req.url === '/note/image') result = await this.store.dispatch({ ...r, action: 'addWebImage' });

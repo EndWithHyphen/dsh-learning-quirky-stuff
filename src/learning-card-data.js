@@ -1,6 +1,46 @@
 import { normalizeConcept } from './learning-layout.js';
 import { widgetMeta, ownedCardElements, isQuoteCard, readQuoteValues } from '../shared/canvas-quotes.js';
 export { widgetMeta, ownedCardElements, isQuoteCard };
+export function convertibleQuoteSelection(api, root) {
+  if (!api) return null;
+  const state = api.getAppState();
+  if (state.viewModeEnabled) return null;
+  const editing = state.editingTextElement;
+  const ids = editing
+    ? [editing.id]
+    : Object.keys(state.selectedElementIds).filter((id) => state.selectedElementIds[id]);
+  if (ids.length !== 1) return null;
+  const element = api.getSceneElements().find((e) => e.id === ids[0]);
+  if (
+    !element ||
+    element.type !== 'text' ||
+    element.isDeleted ||
+    element.locked ||
+    element.containerId ||
+    widgetMeta(element).role ||
+    widgetMeta(element).widgetId
+  )
+    return null;
+  const raw = element.originalText ?? element.text;
+  if (!editing) return raw?.trim() ? { element, text: raw, partial: false } : null;
+  const editor = root?.querySelector('textarea.excalidraw-wysiwyg');
+  if (!editor || editor.selectionStart === editor.selectionEnd) return null;
+  const start = editor.selectionStart,
+    end = editor.selectionEnd;
+  const partial = start !== 0 || end !== editor.value.length;
+  let text = editor.value.slice(start, end);
+  // Textareas normalize line endings. Map their offsets back to the stored source when it still matches.
+  if (raw?.includes('\r') && raw.replace(/\r\n?/g, '\n') === editor.value) {
+    const offsets = [0];
+    for (let i = 0; i < raw.length; ) {
+      i += raw.startsWith('\r\n', i) ? 2 : 1;
+      offsets.push(i);
+    }
+    text = raw.slice(offsets[start], offsets[end]);
+  }
+  return text.trim() ? { element, text, partial, editor } : null;
+}
+
 export function quoteFromSelection(elements, selectedIds) {
   const texts = elements.filter(
     (e) => selectedIds[e.id] && !e.isDeleted && e.type === 'text' && widgetMeta(e).role !== 'pdf-source',
@@ -10,7 +50,10 @@ export function quoteFromSelection(elements, selectedIds) {
   const reference = widgetMeta(element).pdfSource;
   return {
     text: element.originalText ?? element.text,
-    source: reference?.title && reference.page ? `${reference.title} · 第 ${reference.page} 页` : '',
+    source:
+      reference?.title && reference.page
+        ? `${reference.title} · 第 ${reference.page} 页`
+        : widgetMeta(element).webSource?.title || '',
   };
 }
 export function readCardValues(owner, elements) {

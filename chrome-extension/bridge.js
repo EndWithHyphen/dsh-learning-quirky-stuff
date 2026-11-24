@@ -64,9 +64,13 @@ export async function request(path, body = {}) {
       ),
     });
   } catch {
-    throw new Error('未连接到 DSH。草稿会保留在本机，打开 DSH 后可重试');
+    throw Object.assign(new Error('未连接到 DSH。草稿会保留在本机，打开 DSH 后可重试'), {
+      code: 'BRIDGE_OFFLINE',
+    });
   }
   let value;
+  if ((path === '/capture/excerpt' || path === '/capture/quote') && response.status === 404)
+    throw Object.assign(new Error('请更新本机学习画板以同步划词摘录'), { code: 'BRIDGE_UPDATE_REQUIRED' });
   try {
     value = await response.json();
   } catch {
@@ -81,6 +85,11 @@ export async function request(path, body = {}) {
   }
   return value;
 }
+export function saveSelection(item) {
+  // Items already queued by the quote-only extension retain the action chosen at capture time.
+  return request(item.kind === 'excerpt' ? '/capture/excerpt' : '/capture/quote', item);
+}
+
 export async function pairRequest(port, path, body) {
   if (!Number.isInteger(port) || port < 1024 || port > 65535)
     throw new Error('端口必须是 1024～65535 之间的整数');

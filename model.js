@@ -6,7 +6,8 @@ import { findCodex, runCodex } from './codex-provider.js';
 import { availableModels } from './server/ai/catalog.js';
 import { ModelGateway } from './server/ai/gateway.js';
 import { sourceImageCatalog, sourceAssets, originalSummaryElements } from './summary-sources.js';
-import { SUMMARY_INSTRUCTIONS, SUMMARY_PROMPT_VERSION } from './summary-prompt.js';
+import { canvasSummaryInstructions, SUMMARY_PROMPT_VERSION } from './summary-prompt.js';
+import { resolveSummaryTemplate } from './shared/summary-templates.js';
 import { INFOGRAPHIC_INSTRUCTIONS, normalizeInfographics } from './shared/infographics.js';
 import { visualSourceSnapshot, infographicSourceIds } from './server/infographic-sources.js';
 
@@ -24,7 +25,7 @@ export async function awaitJobCleanup(jobs) {
     clearTimeout(timer);
   }
 }
-export function buildSummaryPrompt(board, r) {
+export function buildSummaryPrompt(board, r, template = resolveSummaryTemplate(r.templateId)) {
   r = { ...r, elements: originalSummaryElements(r.elements || [], board.summaries || []) };
   const texts = (r.elements || [])
     .filter((e) => e.type === 'text' && !e.isDeleted)
@@ -59,15 +60,20 @@ export function buildSummaryPrompt(board, r) {
       ? '本次关闭自动信息图。infographics 必须为空数组，visualDecision 留空。原有原图引用与简单示意图按内容需要选择。'
       : INFOGRAPHIC_INSTRUCTIONS;
   const visualSources = visualSourceSnapshot(board, r.elements, r.scope);
-  return `${SUMMARY_INSTRUCTIONS}\n\n${visuals}\n\n输出 JSON Schema：\n${JSON.stringify(STUDY_SCHEMA)}\n\n【提供的资料】\n${context}\n\n图文来源：${JSON.stringify(visualSources).slice(0, 45000)}\n\n【用户学习目标】\n${(r.instructions || '').slice(0, 2500) || '围绕材料主题，整理重点及其联系，选择有助于理解的图文表达。'}\n\n【配图识别】\n${r.images?.length ? '附图先是整张画布的分区预览，随后是带 S 编号的原图细节。原图索引位于 sourceImages，sourceFigures 与信息图图片从中选择相关的 S 编号。' : '本次没有提供原图，sourceFigures 必须为空数组，信息图不得使用 image 节点。'}`;
+  return `${canvasSummaryInstructions(template)}\n\n${visuals}\n\n输出 JSON Schema：\n${JSON.stringify(STUDY_SCHEMA)}\n\n【提供的资料】\n${context}\n\n图文来源：${JSON.stringify(visualSources).slice(0, 45000)}\n\n【用户学习目标】\n${(r.instructions || '').slice(0, 2500) || '围绕材料主题，整理重点及其联系，选择有助于理解的图文表达。'}\n\n【配图识别】\n${r.images?.length ? '附图先是整张画布的分区预览，随后是带 S 编号的原图细节。原图索引位于 sourceImages，sourceFigures 与信息图图片从中选择相关的 S 编号。' : '本次没有提供原图，sourceFigures 必须为空数组，信息图不得使用 image 节点。'}`;
 }
 export class SummaryJobs {
-  constructor(ctx, store, { timeoutMs = 1800000, infographicsEnabled = () => true } = {}) {
+  constructor(
+    ctx,
+    store,
+    { timeoutMs = 1800000, infographicsEnabled = () => true, resolveTemplate = resolveSummaryTemplate } = {},
+  ) {
     this.ctx = ctx;
     this.store = store;
     this.jobs = new Map();
     this.timeoutMs = timeoutMs;
     this.infographicsEnabled = infographicsEnabled;
+    this.resolveTemplate = resolveTemplate;
   }
   async start(r) {
     if (!r || !['summary', 'expand', 'restructure'].includes(r.mode || 'summary'))
@@ -87,6 +93,10 @@ export class SummaryJobs {
     )
       throw new Error('白板预览图过大或格式不正确');
     const b = await this.store.read(r.id);
+    const parent =
+      ['expand', 'restructure'].includes(r.mode) && b.summaries.find((s) => s.id === r.parentSummaryId);
+    const template =
+      r.templateId == null && parent?.template ? parent.template : this.resolveTemplate(r.templateId);
     if ((!r.mode || r.mode === 'summary') && !r.images.length && !(b.webNotes?.text || '').trim())
       throw new Error('请先记录内容或添加截图');
     if (b.deletedAt) throw new Error('请先恢复笔记');
@@ -107,7 +117,7 @@ export class SummaryJobs {
     };
     if (r.images.length && !model.vision)
       throw new Error('白板含有图像，请选择支持图片的模型；纯文字拓展可用文字模型');
-    buildSummaryPrompt(b, r);
+    const prompt = buildSummaryPrompt(b, r, template);
     if ([...this.jobs.values()].some((j) => j.boardId === r.id && j.status === 'running'))
       throw new Error('这篇笔记正在生成学习内容，请等待或取消');
     const job = {
@@ -123,7 +133,7 @@ export class SummaryJobs {
       createdAt: new Date().toISOString(),
     };
     this.jobs.set(job.id, job);
-    job.task = this.run(job, b, r).catch((e) => {
+    job.task = this.run(job, b, r, prompt, template).catch((e) => {
       job.status = 'error';
       job.error = e.message;
     });
@@ -179,7 +189,7 @@ export class SummaryJobs {
         );
     return Promise.allSettled([...this.jobs.values()].map((job) => job.task));
   }
-  async run(job, b, r) {
+  async run(job, b, r, prompt, template) {
     const timer = setTimeout(
       () =>
         job.controller.abort(
@@ -192,7 +202,6 @@ export class SummaryJobs {
     let inputRecord;
     const inputFile = join(this.store.root, 'summary-inputs', job.id + '.json');
     try {
-      const prompt = buildSummaryPrompt(b, r);
       const content = await this.ctx.attachments.admitPromptContent([
         { type: 'text', text: prompt },
         ...r.images.map((i, n) => ({
@@ -207,6 +216,7 @@ export class SummaryJobs {
         revision: b.revision,
         mode: r.mode || 'summary',
         promptVersion: SUMMARY_PROMPT_VERSION,
+        template,
         provider: r.provider,
         model: r.model,
         reasoningEffort: r.reasoningEffort || null,
@@ -260,6 +270,7 @@ export class SummaryJobs {
         provider: r.provider,
         model: r.model,
         promptVersion: SUMMARY_PROMPT_VERSION,
+        template,
         inputId: job.id,
         kind: r.mode || 'summary',
         parentSummaryId: r.parentSummaryId || null,

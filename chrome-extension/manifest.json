@@ -2,13 +2,14 @@
   "manifest_version": 3,
   "name": "学习画板 · 快捷收藏",
   "version": "4.6.0",
-  "description": "边看文章和视频边记笔记，截图自动同步到 DSH 学习画板。",
+  "description": "边看网页边记笔记，划词摘录原文，金句和截图自动同步到 DSH 学习画板。",
   "permissions": [
     "activeTab",
     "storage",
     "alarms",
     "sidePanel",
-    "scripting"
+    "scripting",
+    "contextMenus"
   ],
   "host_permissions": [
     "http://127.0.0.1:43127/*"
@@ -34,6 +35,18 @@
         "mac": "Command+Shift+Y"
       },
       "description": "打开当前网页的侧边学习笔记"
+    },
+    "studyboard-clip-selection": {
+      "suggested_key": {
+        "default": "Alt+Shift+Z"
+      },
+      "description": "普通摘录 · 将选中文字保存到画布"
+    },
+    "studyboard-quote-selection": {
+      "suggested_key": {
+        "default": "Alt+Shift+X"
+      },
+      "description": "金句记录 · 保存原文并加入间隔复习"
     }
   },
   "minimum_chrome_version": "116",

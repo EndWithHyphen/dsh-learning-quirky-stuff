@@ -102,3 +102,14 @@ html[data-surface='bottom'] #preview-section {
 html.canvas-focus #preview-section {
   display: none !important;
 }
+#preview-root .page-study details {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+#preview-root .page-study summary {
+  font-size: 13px;
+  color: var(--ink);
+}
+#preview-root .preview-cue {
+  color: var(--accent);
+}

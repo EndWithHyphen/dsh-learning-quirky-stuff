@@ -59,6 +59,21 @@
             >
               <span>▣ 可见页截图</span><kbd data-shot-key="full">⌥⇧V</kbd>
             </button>
+            <label id="study-template-field" hidden
+              >总结模板
+              <select id="study-template">
+                <option value="default">默认模板</option>
+              </select>
+            </label>
+            <button
+              id="study-current-page"
+              type="button"
+              hidden
+              disabled
+              title="读取当前页正文或字幕，用所选模型整理要点和自测题"
+            >
+              总结当前网页
+            </button>
           </div>
           <button id="cancel-capture" hidden>取消截图 · Esc</button>
           <div id="pending-image" hidden></div>

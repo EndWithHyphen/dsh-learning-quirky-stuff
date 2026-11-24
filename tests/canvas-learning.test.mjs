@@ -6,7 +6,29 @@ import {
   readCardValues,
   cardAtPoint,
   quoteFromSelection,
+  convertibleQuoteSelection,
 } from '../src/learning-card-data.js';
+
+test('转为金句保留未折行原文，编辑时仅摘选区，已有卡片和混合选择不触发转换', () => {
+  const raw = '甲\r\n乙  丙\r\n丁';
+  const text = { id: 'passage', type: 'text', text: '手动排版', originalText: raw };
+  const state = { selectedElementIds: { passage: true } };
+  const api = { getAppState: () => state, getSceneElements: () => [text] };
+  assert.equal(convertibleQuoteSelection(api).text, raw);
+  state.selectedElementIds.extra = true;
+  assert.equal(convertibleQuoteSelection(api), null);
+  delete state.selectedElementIds.extra;
+  text.locked = true;
+  assert.equal(convertibleQuoteSelection(api), null);
+  delete text.locked;
+  state.editingTextElement = { id: text.id };
+  const input = { value: '甲\n乙  丙\n丁', selectionStart: 0, selectionEnd: 6 };
+  const part = convertibleQuoteSelection(api, { querySelector: () => input });
+  assert.equal(part.text, '甲\r\n乙  丙');
+  assert(part.partial);
+  text.customData = { studyboard: { widgetId: 'card', role: 'passage' } };
+  assert.equal(convertibleQuoteSelection(api, { querySelector: () => input }), null);
+});
 const owner = {
   id: 'card',
   type: 'rectangle',

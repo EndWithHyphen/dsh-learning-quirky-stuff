@@ -6,7 +6,7 @@ const imageCompanion = (element, imageId) =>
     imageId,
   );
 
-function source(board, url) {
+export function checkWebNoteSource(board, url) {
   if (board.deletedAt) {
     const e = new Error('这篇笔记已在回收站，请先恢复');
     e.code = 'NOTE_TRASHED';
@@ -18,7 +18,7 @@ function source(board, url) {
 }
 export async function webNote(store, r) {
   const b = await store.read(r.id);
-  source(b, r.url);
+  checkWebNoteSource(b, r.url);
   return {
     id: b.id,
     title: b.title,
@@ -62,7 +62,7 @@ export function reconcileWebImages(b, scene) {
 export async function setWebImageDeleted(store, r) {
   return store.serial(async () => {
     const b = await store.read(r.id);
-    source(b, r.url);
+    checkWebNoteSource(b, r.url);
     const image = (b.webImages || []).find((i) => i.id === r.imageId);
     if (!image || typeof r.deleted !== 'boolean') throw new Error('截图不存在或操作不正确');
     const old = b.scene.elements.find((e) => e.id === image.id) || image.element;
@@ -127,13 +127,13 @@ export async function setWebImageDeleted(store, r) {
 }
 export async function webCanvas(store, r) {
   const b = await store.read(r.id);
-  source(b, r.url);
+  checkWebNoteSource(b, r.url);
   return { id: b.id, title: b.title, scene: b.scene, revision: b.revision };
 }
 export async function saveWebCanvas(store, r) {
   return store.serial(async () => {
     const b = await store.read(r.id);
-    source(b, r.url);
+    checkWebNoteSource(b, r.url);
     if (typeof r.requestId !== 'string' || !/^[a-zA-Z0-9_-]{8,100}$/.test(r.requestId))
       throw new Error('保存编号不正确');
     if (b.lastWebCanvasSave?.id === r.requestId)
@@ -154,7 +154,7 @@ export async function saveWebCanvas(store, r) {
 }
 export async function webImage(store, r) {
   const b = await store.read(r.id);
-  source(b, r.url);
+  checkWebNoteSource(b, r.url);
   const image = (b.webImages || []).find((i) => i.id === r.imageId),
     file = image && b.scene.files[image.fileId];
   if (!image || !file) throw new Error('截图不存在');
@@ -163,7 +163,7 @@ export async function webImage(store, r) {
 export async function saveWebNotes(store, r) {
   return store.serial(async () => {
     const b = await store.read(r.id);
-    source(b, r.url);
+    checkWebNoteSource(b, r.url);
     if (typeof r.text !== 'string' || r.text.length > 50000) throw new Error('随手记最多 50,000 字');
     const current = b.webNotes || { text: '', version: 0, updatedAt: b.createdAt };
     if (r.text === current.text) return { webNotes: current };
@@ -179,10 +179,47 @@ export async function saveWebNotes(store, r) {
     return { webNotes: b.webNotes };
   });
 }
+export function nextWebCanvasPosition(scene) {
+  const live = scene.elements.filter((e) => !e.isDeleted);
+  return live.length
+    ? {
+        x: Math.min(...live.map((e) => e.x)),
+        y: Math.max(...live.map((e) => e.y + Math.abs(e.height || 0))) + 70,
+      }
+    : { x: 0, y: 0 };
+}
+
+export function webCanvasElement(shape) {
+  return {
+    angle: 0,
+    strokeColor: 'transparent',
+    backgroundColor: 'transparent',
+    fillStyle: 'solid',
+    strokeWidth: 1,
+    strokeStyle: 'solid',
+    roughness: 0,
+    opacity: 100,
+    groupIds: [],
+    frameId: null,
+    roundness: null,
+    index: null,
+    seed: randomInt(1, 2147483647),
+    version: 1,
+    versionNonce: randomInt(1, 2147483647),
+    isDeleted: false,
+    boundElements: null,
+    updated: Date.now(),
+    link: null,
+    locked: false,
+    ...(shape.type === 'text' ? { containerId: null, autoResize: false, originalText: shape.text } : {}),
+    ...shape,
+  };
+}
+
 export async function addWebImage(store, r) {
   return store.serial(async () => {
     const b = await store.read(r.id);
-    source(b, r.url);
+    checkWebNoteSource(b, r.url);
     if (typeof r.requestId !== 'string' || !/^[a-zA-Z0-9_-]{8,100}$/.test(r.requestId))
       throw new Error('截图请求编号不正确');
     const existing = (b.webImages || []).find((i) => i.requestId === r.requestId);
@@ -213,44 +250,22 @@ export async function addWebImage(store, r) {
       throw new Error('截图数据损坏');
     const id = randomUUID(),
       fileId = randomUUID(),
-      time = Date.now(),
-      elements = b.scene.elements.filter((e) => !e.isDeleted);
+      time = Date.now();
     const width = Math.min(900, r.width),
-      height = (width * r.height) / r.width,
-      x = elements.length ? Math.min(...elements.map((e) => e.x)) : 0,
-      y = elements.length ? Math.max(...elements.map((e) => e.y + Math.abs(e.height || 0))) + 70 : 0;
-    const element = {
+      height = (width * r.height) / r.width;
+    const element = webCanvasElement({
       id,
       type: 'image',
-      x,
-      y,
+      ...nextWebCanvasPosition(b.scene),
       width,
       height,
-      angle: 0,
-      strokeColor: 'transparent',
-      backgroundColor: 'transparent',
-      fillStyle: 'solid',
-      strokeWidth: 1,
-      strokeStyle: 'solid',
-      roughness: 0,
-      opacity: 100,
-      groupIds: [],
-      frameId: null,
-      roundness: null,
-      index: null,
-      seed: randomInt(1, 2147483647),
-      version: 1,
-      versionNonce: randomInt(1, 2147483647),
-      isDeleted: false,
-      boundElements: null,
       updated: time,
       link: b.source.url,
-      locked: false,
       fileId,
       status: 'saved',
       scale: [1, 1],
       crop: null,
-    };
+    });
     const files = {
       ...b.scene.files,
       [fileId]: {

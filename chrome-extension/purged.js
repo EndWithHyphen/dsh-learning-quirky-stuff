@@ -2,6 +2,7 @@ import { request } from './bridge.js';
 import { draftPurge } from './drafts.js';
 import { removePurgedTabNotes } from './tab-notes.js';
 import { removeBottomDrawer } from './bottom-drawer.js';
+import { forgetPurgedSelections } from './selection-capture.js';
 let running;
 export function syncPurged({ updateQueue } = {}) {
   if (running) return running;
@@ -10,6 +11,7 @@ export function syncPurged({ updateQueue } = {}) {
       ids = new Set(result.ids || []),
       requests = new Set(result.requestIds || []);
     if (!ids.size && !requests.size) return { ok: true };
+    await forgetPurgedSelections(ids, requests);
     const previous = (await chrome.storage.local.get('purgedNotes')).purgedNotes || [];
     if ([...ids].some((id) => !previous.includes(id)))
       await chrome.storage.local.set({ purgedNotes: [...ids] });
@@ -26,6 +28,8 @@ export function syncPurged({ updateQueue } = {}) {
       }
     const all = await chrome.storage.local.get(null),
       remove = [];
+    const previewKeys = [...ids].map((id) => 'material-preview:' + id).filter((key) => key in all);
+    if (previewKeys.length) await chrome.storage.local.remove(previewKeys);
     for (const [key, value] of Object.entries(all))
       if (
         /^(reading:|draft:|pending-screenshot:)/.test(key) &&

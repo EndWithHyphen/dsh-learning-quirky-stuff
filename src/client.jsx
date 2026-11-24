@@ -1601,7 +1601,12 @@ const Board = React.forwardRef(function Board(
           </React.Suspense>
         )}
         <div className="sb-canvas-column">
-          <CanvasTools key={canvasEpoch} apiRef={excali} rootRef={canvasRoot}>
+          <CanvasTools
+            key={canvasEpoch}
+            apiRef={excali}
+            rootRef={canvasRoot}
+            onConvertQuote={() => learningWidgets.current?.convertSelectionToQuote()}
+          >
             {boardModules.enabled('pdf') && <PdfClipSource apiRef={excali} onOpen={openPdfSource} />}
             <CanvasComments
               key={board.id}

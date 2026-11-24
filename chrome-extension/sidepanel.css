@@ -207,6 +207,24 @@ p {
   font-size: 12px;
   padding: 10px 5px;
 }
+#study-template-field:not([hidden]) {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+#study-template-field select {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  color: var(--ink);
+}
+#study-current-page {
+  align-self: end;
+  color: var(--accent);
+  background: var(--soft);
+}
 .capture p {
   font-size: 10px;
   color: var(--muted);

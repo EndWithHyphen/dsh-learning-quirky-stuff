@@ -1,17 +1,7 @@
-import { randomUUID } from 'node:crypto';
-import {
-  object,
-  array,
-  string,
-  claimSchema,
-  digest,
-  publicUrl,
-  optionalText,
-  requiredText,
-} from '../lib/values.js';
-import { splitParagraphs, parseSubtitles, readingMinutes } from '../../shared/material-text.js';
+import { object, array, string, claimSchema, publicUrl, requiredText } from '../lib/values.js';
 import { rankSources } from './search.js';
 import { ANALYSIS_RULES, citedClaim, reportModelData } from '../reports.js';
+import { generatePageStudy, pageStudyVersions, pageTemplateKey } from '../page-study.js';
 
 export const PREVIEW_SCHEMA = object({
   question: string,
@@ -31,7 +21,10 @@ export class MaterialsModule {
     router.register('materials.list', () => this.list(), 'preview');
     router.register('materials.capture', (request) => this.capture(request), 'preview');
     router.register('materials.fetch', (request) => this.fetch(request), 'preview');
-    router.register('materials.get', (request) => this.get(request.id), 'preview');
+    router.register('materials.studyUrl', (request) => this.fetch(request, true), 'preview');
+    router.register('materials.study', (request) => this.study(request), 'preview');
+    router.register('materials.enrollStudy', (request) => this.enrollStudy(request), 'preview');
+    router.register('materials.get', (request) => this.get(request), 'preview');
     router.register('materials.preview', (request) => this.preview(request), 'preview');
     router.register('materials.delete', (request) => this.delete(request), 'preview');
   }
@@ -44,29 +37,99 @@ export class MaterialsModule {
   async capture(request) {
     return this.materialLibrary.capture(request);
   }
-  async fetch(request) {
+  async fetch(request, study = false) {
     const url = publicUrl(requiredText(request.url, '网址', 10000));
+    const route = this.route('preview', request.route);
+    const template = study ? this.config.summaryTemplate(request.templateId) : null;
     return this.tasks.start({
       feature: 'preview',
-      key: 'url:' + url,
-      title: '读取材料',
-      request: { url },
+      key: study
+        ? 'study-url:' + JSON.stringify([url, route.provider, route.model, pageTemplateKey(template)])
+        : 'url:' + url,
+      title: study ? '网页学习总结' : '读取材料',
+      request: { url, ...(study ? { templateId: template.id, templateRevision: template.revision } : {}) },
       run: async (job) => {
         job.progress('正在读取文章正文');
         const document = await this.web.read(url, job.signal);
         job.assertActive();
         const material = await this.capture(document);
+        if (study) return generatePageStudy(this, material, route, job, template);
         return { materialId: material.id };
       },
     });
   }
-  async get(id) {
-    const material = await this.materials.get(id);
-    if (material.deletedAt) throw new Error('材料已删除');
+  async get(request) {
+    const material = await this.getMaterial(request);
+    const studyId = request.studyId || material.latestStudyId;
+    const studyReport = studyId ? await this.reports.get(studyId) : null;
+    if (studyReport && (studyReport.kind !== 'pageStudy' || studyReport.key !== material.id))
+      throw new Error('学习总结与材料不匹配');
     return {
       material,
+      studyVersions: pageStudyVersions(material),
       report: material.latestPreviewId ? await this.reports.get(material.latestPreviewId) : null,
+      studyReport,
     };
+  }
+  async getMaterial(request) {
+    const material = await this.materials.get(request.id);
+    if (material.deletedAt) throw new Error('材料已删除');
+    if (
+      request.boardId != null &&
+      (material.boardId !== request.boardId || material.url !== publicUrl(request.url))
+    )
+      throw new Error('这份材料不属于当前网页笔记');
+    return material;
+  }
+  async study(request) {
+    const material = await this.getMaterial(request);
+    const route = this.route('preview', request.route);
+    const template = this.config.summaryTemplate(request.templateId);
+    return this.tasks.start({
+      feature: 'preview',
+      key: 'study:' + JSON.stringify([material.id, route.provider, route.model, pageTemplateKey(template)]),
+      title: '学习总结：' + material.title,
+      references: { materialIds: [material.id], noteIds: material.boardId ? [material.boardId] : [] },
+      request: {
+        id: material.id,
+        route: request.route,
+        templateId: template.id,
+        templateRevision: template.revision,
+      },
+      run: (job) => generatePageStudy(this, material, route, job, template),
+    });
+  }
+  async enrollStudy(request) {
+    const material = await this.getMaterial(request);
+    const report = await this.reports.get(request.reportId);
+    if (
+      report.feature !== 'preview' ||
+      report.kind !== 'pageStudy' ||
+      report.key !== material.id ||
+      report.unavailable ||
+      report.stale
+    )
+      throw new Error('这份学习总结的来源已变化或不可用，请重新总结');
+    let added = 0,
+      suspended = 0;
+    for (const [index, question] of report.value.reviewQuestions.entries()) {
+      const result = await this.learning.enrollCustom({
+        boardId: material.boardId,
+        originFeature: 'preview',
+        originId: report.id,
+        originTitle: material.title,
+        index,
+        question: { ...question, kind: 'recall' },
+        sourceRefs: question.evidence.map((s) => ({
+          materialId: material.id,
+          boardId: material.boardId,
+          sourceId: s.id,
+        })),
+      });
+      added += result.added;
+      if (result.card.suspended) suspended++;
+    }
+    return { added, total: report.value.reviewQuestions.length, suspended };
   }
   async delete(request) {
     return this.materials.update(request.id, (material) => ({

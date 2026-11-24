@@ -9,6 +9,8 @@ import { LearningStore } from '../learning.js';
 import { LearningRuntime } from '../server/runtime.js';
 import { TOPIC_SCHEMA } from '../server/modules/topics.js';
 import { PREVIEW_SCHEMA } from '../server/modules/materials.js';
+import { PAGE_STUDY_SCHEMA } from '../server/page-study.js';
+import { pageStudyResult } from './page-study-fixture.mjs';
 import { FEEDBACK_SCHEMA } from '../server/modules/feedback.js';
 import { EXPLORE_SCHEMA } from '../server/modules/explore.js';
 import { parseSubtitles } from '../shared/material-text.js';
@@ -394,6 +396,220 @@ test('字幕保留时间点，材料预览定位到实际段落，报告失去�
   await runtime.execute({ action: 'materials.delete', id: material.id });
   assert.equal((await runtime.reports.get(result.report.id)).unavailable, true);
   await runtime.dispose();
+});
+test('网页学习只总结指定页面，保存出处，复用同一结果并幂等加入今日复习', async (t) => {
+  const calls = [];
+  const { runtime, store, learning, note } = await fixture({
+    gateway: {
+      async json(options) {
+        assert.equal(options.schema, PAGE_STUDY_SCHEMA);
+        calls.push(options);
+        return pageStudyResult(options);
+      },
+    },
+  });
+  t.after(() => runtime.dispose());
+  await store.dispatch({
+    action: 'saveWebNotes',
+    id: note.id,
+    url: note.source.url,
+    baseVersion: 0,
+    requestId: 'private-note-write',
+    text: 'OTHER_PRIVATE_NOTES',
+  });
+  const request = {
+    action: 'materials.capture',
+    boardId: note.id,
+    url: note.source.url,
+    title: '测试网页',
+    kind: 'article',
+    blocks: [
+      { text: other, domId: 'section-intro' },
+      { text: passage, domId: 'section-two' },
+    ],
+  };
+  const [material, copy] = await Promise.all([runtime.execute(request), runtime.execute(request)]);
+  assert.equal(copy.id, material.id);
+  const action = {
+    action: 'materials.study',
+    id: material.id,
+    boardId: note.id,
+    url: note.source.url,
+    route: { provider: 'fixture', model: 'fixture' },
+  };
+  await assert.rejects(runtime.execute({ ...action, url: 'https://example.test/wrong' }), /不属于/);
+  const task = await completed(runtime, await runtime.execute(action));
+  assert.equal(task.status, 'done', task.error);
+  const { studyReport, report } = await runtime.execute({ action: 'materials.get', id: material.id });
+  assert.equal(report, null);
+  assert.equal(studyReport.id, task.result.reportId);
+  assert.equal(studyReport.value.partial, false);
+  assert.equal(studyReport.value.points[0].body.evidence[0].locator.domId, 'section-two');
+  assert(calls[0].prompt.includes(other) && calls[0].prompt.includes(passage));
+  assert(!calls[0].prompt.includes('OTHER_PRIVATE_NOTES'));
+  assert(!calls[0].webSearch);
+  assert.equal((await completed(runtime, await runtime.execute(action))).result.reportId, studyReport.id);
+  assert.equal(calls.length, 1);
+  const enroll = { ...action, action: 'materials.enrollStudy', reportId: studyReport.id };
+  assert.equal((await runtime.execute(enroll)).added, 1);
+  assert.equal((await runtime.execute(enroll)).added, 0);
+  const [card] = (await learning.dashboard()).cards;
+  assert.equal(card.answer, studyReport.value.reviewQuestions[0].answer);
+  assert.equal(card.origin.id, studyReport.id);
+  await runtime.execute({ action: 'materials.delete', id: material.id });
+  assert.equal((await learning.dashboard()).total, 0);
+  await assert.rejects(runtime.execute(enroll), /已删除/);
+});
+
+test('网址一键总结对长文标明选段，保留首尾来源；无法读取或引用失实时不保存总结', async (t) => {
+  let calls = 0,
+    invalid = false;
+  const { runtime } = await fixture({
+    web: {
+      async read(url) {
+        if (url.endsWith('/empty')) return { url, title: '空网页', blocks: [] };
+        return {
+          url,
+          title: '长文',
+          kind: 'article',
+          completeness: 'full',
+          blocks: Array.from({ length: 120 }, (_, i) => ({ text: '段落' + i + ' ' + passage.repeat(30) })),
+        };
+      },
+    },
+    gateway: {
+      async json(options) {
+        calls++;
+        const parsed = inputs(options.prompt);
+        assert.equal(parsed.length, 100);
+        assert(parsed[0].text.startsWith('段落0 ') && parsed.at(-1).text.startsWith('段落119 '));
+        assert(parsed.reduce((n, s) => n + s.text.length, 0) <= 48000);
+        const result = pageStudyResult(options);
+        if (invalid) result.value.points[0].body.evidence[0].quote = '捏造的引文';
+        return result;
+      },
+    },
+  });
+  t.after(() => runtime.dispose());
+  const start = (path) =>
+    runtime.execute({ action: 'materials.studyUrl', url: 'https://example.test/' + path });
+  const empty = await completed(runtime, await start('empty'));
+  assert.equal(empty.status, 'error');
+  assert.equal(calls, 0);
+  const done = await completed(runtime, await start('long'));
+  assert.equal(done.status, 'done', done.error);
+  const report = await runtime.reports.get(done.result.reportId);
+  assert.equal(report.value.partial, true);
+  assert.equal(report.scope.noteIds.length, 0);
+  const enrollment = await runtime.execute({
+    action: 'materials.enrollStudy',
+    id: done.result.materialId,
+    reportId: report.id,
+  });
+  assert.equal(enrollment.added, 1);
+  invalid = true;
+  const bad = await completed(runtime, await start('other'));
+  assert.equal(bad.status, 'error');
+  assert.match(bad.error, /原文不一致/);
+  assert.equal((await runtime.repositories.reports.list()).length, 1);
+  const imported = await runtime.execute({ action: 'materials.list' });
+  assert.equal(imported.find((m) => m.url.endsWith('/other')).latestStudyId, null);
+  await assert.rejects(
+    runtime.execute({
+      action: 'materials.enrollStudy',
+      id: imported.find((m) => m.url.endsWith('/other')).id,
+      reportId: report.id,
+    }),
+    /来源/,
+  );
+});
+test('同一网页按模板及其版本分别生成与复用，老总结作为默认模板保留', async (t) => {
+  const calls = [];
+  const { runtime } = await fixture({
+    gateway: {
+      async json(options) {
+        calls.push(options.prompt);
+        return pageStudyResult(options);
+      },
+    },
+  });
+  t.after(() => runtime.dispose());
+  const material = await runtime.execute({ action: 'materials.capture', title: '学习原文', text: passage });
+  const start = (templateId) => runtime.execute({ action: 'materials.study', id: material.id, templateId });
+  const run = async (id) => {
+    const finished = await completed(runtime, await start(id));
+    assert.equal(finished.status, 'done', finished.error);
+    return finished.result.reportId;
+  };
+  const standard = await run(undefined);
+  await runtime.repositories.materials.update(material.id, ({ studyVersions, ...old }) => old);
+  await runtime.repositories.reports.update(standard, ({ template, ...old }) => old);
+  assert.equal(await run('default'), standard);
+  const first = { id: 'lectures', revision: 0, name: '我的复述', prompt: '按照小组讨论的顺序，先解释假设。' };
+  const update = (change) => runtime.execute({ action: 'features.update', summaryTemplate: change });
+  await update(first);
+  const [custom, preset] = await Promise.all([run(first.id), run('recall')]);
+  assert.notEqual(custom, preset);
+  assert.equal(await run(first.id), custom);
+  assert.equal(await run('default'), standard);
+  assert.equal(calls.length, 3);
+  assert(calls.some((p) => p.includes(first.prompt)));
+  await update({ ...first, prompt: '换用两个案例比较。', revision: 1 });
+  const revised = await run(first.id);
+  assert.notEqual(revised, custom);
+  assert(calls.at(-1).includes('换用两个案例比较。'));
+  const detail = await runtime.execute({ action: 'materials.get', id: material.id, studyId: custom });
+  assert.equal(detail.studyVersions.length, 4);
+  assert.equal(detail.studyReport.template.prompt, first.prompt);
+  assert.equal(detail.studyReport.template.revision, 1);
+  assert.equal((await runtime.backup()).settings.summaryTemplates[0].revision, 2);
+  await update({ id: first.id, revision: 2, remove: true });
+  await assert.rejects(start(first.id), /不存在/);
+  assert.equal((await runtime.reports.get(revised)).template.revision, 2);
+  assert.equal(calls.length, 4);
+  const common = '术语旁标注英文。';
+  await runtime.execute({
+    action: 'features.update',
+    summaryTemplateCommon: { revision: 0, prompt: common },
+  });
+  const updatedDefault = await run('default');
+  assert.notEqual(updatedDefault, standard);
+  assert(calls.at(-1).includes(common));
+  assert.equal(await run('default'), updatedDefault);
+  assert.equal(calls.length, 5);
+});
+
+test('取消网页总结会丢弃迟到的模型结果，已读取的材料仍可重试', async (t) => {
+  let enter, finish;
+  const entered = new Promise((resolve) => {
+    enter = resolve;
+  });
+  const gate = new Promise((resolve) => {
+    finish = resolve;
+  });
+  const { runtime } = await fixture({
+    gateway: {
+      async json(options) {
+        enter();
+        await gate;
+        return pageStudyResult(options);
+      },
+    },
+  });
+  t.after(() => {
+    finish();
+    return runtime.dispose();
+  });
+  const material = await runtime.execute({ action: 'materials.capture', text: passage });
+  const action = { action: 'materials.study', id: material.id };
+  const task = await runtime.execute(action);
+  await entered;
+  assert.equal((await runtime.execute(action)).id, task.id);
+  await runtime.execute({ action: 'tasks.cancel', id: task.id });
+  finish();
+  assert.equal((await completed(runtime, task)).status, 'cancelled');
+  assert.equal((await runtime.execute({ action: 'materials.get', id: material.id })).studyReport, null);
+  assert.equal((await completed(runtime, await runtime.execute(action))).status, 'done');
 });
 test('理解反馈能归档并将针对性问题加入复习，来源删除后复习暂停', async () => {
   const { runtime, learning, store, note } = await fixture();

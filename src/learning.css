@@ -80,6 +80,58 @@
   font-size: 11px;
   padding: 7px 9px;
 }
+.sb-template-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+.sb-template-picker > label {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 130px;
+}
+.sb-template-picker select {
+  width: 100%;
+}
+.sb-template-dialog {
+  color: var(--sb-ink, #24382c);
+  background: var(--sb-bg, white);
+  border: 1px solid var(--sb-line, #dce3dd);
+  border-radius: 12px;
+  padding: 20px;
+  width: min(520px, calc(100vw - 60px));
+  max-height: 85vh;
+  overflow: auto;
+}
+.sb-template-dialog::backdrop {
+  background: #16221a66;
+}
+.sb-template-dialog header,
+.sb-template-dialog footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sb-template-dialog header {
+  justify-content: space-between;
+}
+.sb-template-dialog label {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0;
+}
+.sb-template-dialog input,
+.sb-template-dialog textarea {
+  box-sizing: border-box;
+  width: 100%;
+}
+.sb-template-dialog textarea {
+  min-height: 140px;
+  resize: vertical;
+}
 .sb-generation {
   background: var(--sb-panel);
   border: 1px solid var(--sb-line);

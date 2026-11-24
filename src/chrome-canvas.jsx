@@ -277,7 +277,12 @@ export async function mount(root, context, callbacks = {}) {
             <button onClick={download}>下载画布草稿</button>
           </div>
         )}
-        <CanvasTools apiRef={apiRef} rootRef={rootRef} onFit={() => fit()}>
+        <CanvasTools
+          apiRef={apiRef}
+          rootRef={rootRef}
+          onFit={() => fit()}
+          onConvertQuote={() => widgetsRef.current?.convertSelectionToQuote()}
+        >
           <CanvasComments
             key={context.id}
             apiRef={apiRef}

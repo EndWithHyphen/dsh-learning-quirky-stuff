@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CANVAS_TOOLS, focusCanvas } from './canvas-shortcuts.js';
 import CanvasTextWrap from './canvas-text-wrap.jsx';
+import { convertibleQuoteSelection } from './learning-card-data.js';
 const paths = {
   selection: 'M5 3l14 8-7 2-3 7z M12 13l5 7',
   hand: 'M8 12V6a1.5 1.5 0 013 0v6-8a1.5 1.5 0 013 0v8-6a1.5 1.5 0 013 0v6-3a1.5 1.5 0 013 0v6c0 4-3 7-7 7h-1c-2 0-4-1-5-3l-3-5a1.5 1.5 0 012-2l2 2',
@@ -35,7 +36,7 @@ const hints = {
   fit: '显示画布里的全部内容。',
   pen: '触控笔负责绘制，手指用于移动画布。',
 };
-export default function CanvasTools({ apiRef, rootRef, onFit, children }) {
+export default function CanvasTools({ apiRef, rootRef, onFit, onConvertQuote, children }) {
   const [state, setState] = useState({ type: 'selection', locked: false, penMode: false }),
     [hover, setHover] = useState(null);
   useEffect(() => {
@@ -65,11 +66,27 @@ export default function CanvasTools({ apiRef, rootRef, onFit, children }) {
       }
       const update = () => {
         const s = api.getAppState(),
-          next = { type: s.activeTool.type, locked: !!s.activeTool.locked, penMode: !!s.penMode };
+          picked = onConvertQuote && convertibleQuoteSelection(api, rootRef.current),
+          next = {
+            type: s.activeTool.type,
+            locked: !!s.activeTool.locked,
+            penMode: !!s.penMode,
+            quoteAction: picked ? (picked.partial ? '选段记为金句' : '转为金句') : null,
+          };
         setState((old) => (JSON.stringify(old) === JSON.stringify(next) ? old : next));
       };
       update();
-      off = api.onChange(update);
+      const offCanvas = api.onChange(update);
+      if (onConvertQuote) {
+        rootRef.current?.addEventListener('select', update, true);
+        document.addEventListener('selectionchange', update);
+      }
+      const root = rootRef.current;
+      off = () => {
+        offCanvas();
+        root?.removeEventListener('select', update, true);
+        document.removeEventListener('selectionchange', update);
+      };
     };
     frame = requestAnimationFrame(attach);
     return () => {
@@ -137,6 +154,16 @@ export default function CanvasTools({ apiRef, rootRef, onFit, children }) {
           </button>
         ))}
       </div>
+      {state.quoteAction && (
+        <button
+          type="button"
+          className="study-shortcut-button"
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={onConvertQuote}
+        >
+          {state.quoteAction}
+        </button>
+      )}
       <CanvasTextWrap apiRef={apiRef} />
       {children}
       {hover && (
